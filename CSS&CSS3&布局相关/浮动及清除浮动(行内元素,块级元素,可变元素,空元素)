@@ -1,0 +1,364 @@
+# 浮动及清除浮动(行内元素,块级元素,可变元素,空元素)
+
+## 元素分类
+
+### 行内元素
+
+**a - 锚点**     
+
+​       **abbr - 缩写**     
+
+​       **acronym - 首字**     
+
+​       **b - 粗体 ( 不推荐 )**     
+
+​       **bdo - bidi override**     
+
+​       **big - 大字体**     
+
+​       **br - 换行**     
+
+​       **cite - 引用**     
+
+​       **code - 计算机代码 ( 在引用源码的时候需要 )**     
+
+​       **dfn - 定义字段**     
+
+​       **em - 强调**     
+
+​       **font - 字体设定 ( 不推荐 )**     
+
+​       **i - 斜体**     
+
+​       **img - 图片**     
+
+​       **input - 输入框**     
+
+​       **kbd - 定义键盘文本**     
+
+​       **label - 表格标签**     
+
+​       **q - 短引用**     
+
+​       **s - 中划线 ( 不推荐 )**     
+
+​       **samp - 定义范例计算机代码**     
+
+​       **select - 项目选择**     
+
+​       **small - 小字体文本**     
+
+​       **span - 常用内联容器，定义文本内区块**     
+
+​       **strike - 中划线**     
+
+​       **strong - 粗体强调**     
+
+​       **sub - 下标**     
+
+​       **sup - 上标**     
+
+​       **textarea - 多行文本输入框**     
+
+​       **tt - 电传文本**     
+
+​       **u - 下划线**     
+
+​       **var - 定义变量**
+
+**块元素 (block element)**
+
+链接：
+
+https://www.nowcoder.com/questionTerminal/82be034e331a47c9893b2ceef5b8b8b3
+
+来源：牛客网
+
+**address - 地址**     
+
+​       **blockquote - 块引用**     
+
+​       **center - 举中对齐块**     
+
+​       **dir - 目录列表**     
+
+​       **div - 常用块级容易，也是 css layout 的主要标签**     
+
+​       **dl - 定义列表**     
+
+​       **fieldset - form控制组**     
+
+​       **form - 交互表单**     
+
+​       **h3-大标题**     
+
+​       **h4 - 副标题**     
+
+​       **h3 - 3级标题**     
+
+​       **h4 - 4级标题**     
+
+​       **h5 - 5级标题**     
+
+​       **h6 - 6级标题**     
+
+​       **hr - 水平分隔线**     
+
+​       **isindex - input prompt**     
+
+​       **menu - 菜单列表**     
+
+​       **noframes - frames可选内容，（对于不支持 frame 的浏览器显示此区块内容**     
+
+​       **noscript - ）可选脚本内容（对于不支持 script 的浏览器显示此内容）**     
+
+​       **ol - 排序表单**     
+
+​       **p - 段落**     
+
+​       **pre - 格式化文本**     
+
+​       **table - 表格**     
+
+​       **ul - 非排序列表**
+
+### **可变元素**
+
+**可变元素为根据上下文语境决定该元素为块元素或者内联元素。**
+
+**applet - java applet**     
+
+​       **button - 按钮**     
+
+​       **del - 删除文本**     
+
+​       **iframe - inline frame**     
+
+​       **ins - 插入的文本**     
+
+​       **map - 图片区块 (map)**     
+
+​       **object - object对象**     
+
+​       **script - 客户端脚本** 
+
+### 空元素
+
+- **<br/> //换行**
+- **<hr> //分隔线**
+- **<input> //文本框等**
+- **<img> //图片**
+- **<link> <meta>**
+
+## 浮动
+
+**float**CSS属性指定的元素应沿着它的容器的左侧或右侧放置，允许文本和内联元素环绕它。该元素从网页的正常流中移除，但仍然是流的一部分（与[绝对定位](https://developer.mozilla.org/en-US/docs/Web/CSS/position#Absolute_positioning)相反）。
+
+浮动的框可以向左或向右移动，直到它的外边缘碰到包含框或另一个浮动框的边框为止。
+
+```css
+img{
+  float:right;
+}
+```
+
+### float属性值有以下几种：
+
+```js
+left：元素向左浮动
+right：元素向右浮动
+none：默认值。元素不浮动，并会显示在其文本出现的位置
+inherit：从父元素继承float属性
+```
+
+### 浮动有哪些特征？
+
+脱离文档，也就是说浮动不会影响(块级)元素的布局
+
+![](/home/xsh/桌面/markdown/imgs/18dc550dda5b3d577096dec066d8c52b (1).png)
+
+浮动会脱离文档流(但是会影响line-box也就是文字的布局)
+
+浮动会向左/向右浮动，直到碰到另一个浮动元素为止，这是浮动可以内联排列的特征。也就是说，浮动可以设置宽高，并且能够一行多个，是介于`block`和`inline`之间的存在。(类似于inline-block)
+
+浮动会导致父元素塌陷
+
+浮动会脱离文档流，这个问题对整个页面布局有很大的影响。
+
+结果如下，浮动元素脱离了文档流，并不占据文档流的位置，自然父元素也就不能被撑开，所以没了高度。
+
+那怎么办呢？那就需要我们清除浮动，来解决高度坍塌问题！
+
+## 清除浮动
+
+#### 使用带clear的空&ltdiv>标签
+
+在浮动元素后添加一个空元素，如<div class="clear"></div>,然后在css中添加.clear{clear:both}即可。或者是<br class="clear"/>,都行(图片讲解更清晰)
+
+这是最为常用的一种办法，兼容所有主流浏览器,但这种办法使用了大量的无用标签，不推荐
+
+clear 属性定义了元素的哪边上不允许出现浮动元素。在 CSS1 和 CSS2 中，这是通过自动为清除元素（即设置了 clear 属性的元素）增加上外边距实现的。在 CSS2.1 中，会在元素上外边距之上增加清除空间，而外边距本身并不改变。不论哪一种改变，最终结果都一样，如果声明为左边或右边清除，会使元素的上外边框边界刚好在该边上浮动元素的下外边距边界之下。
+
+| left    | 在左侧不允许浮动元素。                |
+| ------- | ------------------------------------- |
+| right   | 在右侧不允许浮动元素。                |
+| both    | 在左右两侧均不允许浮动元素。          |
+| none    | 默认值。允许浮动元素出现在两侧。      |
+| inherit | 规定应该从父元素继承 clear 属性的值。 |
+
+```html
+.news {
+  background-color: gray;
+  border: solid 1px black;
+  }
+
+.news img {
+  float: left;
+  }
+
+.news p {
+  float: right;
+  }
+
+.clear {
+  clear: both;
+  }
+
+<div class="news">
+<img src="news-pic.jpg" />
+<p>some text</p>
+<div class="clear"></div>
+</div>
+```
+
+**优点：简单，代码少，浏览器兼容性好。**
+**缺点：需要添加大量无语义的html元素，代码不够优雅，后期不容易维护。**
+
+###### 不要在浮动元素上清除浮动
+
+
+
+#### 使用**CSS**::after伪元素
+
+结合 :after 伪元素（注意这不是伪类，而是伪元素，代表一个元素之后最近的元素）和 IEhack ，可以完美兼容当前主流的各大浏览器，这里的 IEhack 指的是触发 hasLayout。
+给浮动元素的容器添加一个clearfix的class，然后给这个class添加一个:after伪元素实现元素末尾添加一个看不见的块元素（Block element）清理浮动。
+
+需要注意的是IE6，IE7不支持after伪元素，因此要添加.clearfix{zoom:1}；来触发haslayout，或者你可以把它写到IE6、7的CSS hacker文件里，这样不会影响W3C标准验证
+
+```css
+.news {
+  background-color: gray;
+  border: solid 1px black;
+  }
+
+.news img {
+  float: left;
+  }
+
+.news p {
+  float: right;
+  }
+
+.clearfix:after{
+  content: "020"; 
+  display: block; 
+  height: 0; 
+  clear: both; 
+  visibility: hidden;  
+  }
+
+.clearfix {
+  /* 触发 hasLayout */ 
+  zoom: 1; 
+  }
+
+```
+
+通过CSS伪元素在容器的内部元素最后添加了一个看不见的空格"020"或点"."，并且赋予clear属性来清除浮动。需要注意的是为了IE6和IE7浏览器，要给clearfix这个class添加一条zoom:1;触发haslayout。
+
+
+
+##### haslayout
+
+haslayout是IE7-浏览器的特有属性。hasLayout是一种只读属性，有两种状态：true或false。当其为true时，代表该元素有自己的布局，否则代表该元素的布局继承于父元素
+
+默认触发hasLayout的有如下HTML标签：
+
+HTML标签
+
+　　【1】html,body
+　　【2】table,tr,th,td
+　　【3】img
+　　【4】hr
+　　【5】input,button,select,textarea,fieldset
+　　【6】frameset,frame,iframe
+
+CSS属性
+
+　　可以触发hasLayout的有如下CSS属性：
+
+　　【1】display:inline-block
+　　【2】height/width:除了auto
+　　【3】float:left/right
+　　【4】position:absolute
+　　【5】writing-mode(IE专有属性，设置文本的垂直显示):tb-rl
+　　【6】zoom(IE专有属性，设置或检索对象的缩放比例):除了normal
+
+【IE7专有的触发hasLayout的CSS属性】
+
+【1】min-height/max-height/min-width/max-width:除none
+　　【2】overflow\overflow-x\overflow-y:除visible
+　　【3】position:fixed
+
+#### **使用邻接元素处理**
+
+什么都不做，给浮动元素后面的元素添加clear属性。
+
+```html
+.news {
+  background-color: gray;
+  border: solid 1px black;
+  }
+
+.news img {
+  float: left;
+  }
+
+.news p {
+  float: right;
+  }
+
+.content{
+  clear:both;
+  }
+
+<div class="news">
+<img src="news-pic.jpg" />
+<p>some text</p>
+<div class="content">***</div>
+</div>
+```
+
+
+
+注意这里的div.content有内容。
+
+#### 父元素bfc
+
+我们可以给父元素添加以下属性来触发BFC：
+
+1. `float` 为 `left` | `right`
+2. `overflow` 为 `hidden` | `auto` | `scorll`
+3. `display` 为 `table-cell` | `table-caption` | `inline-block` | `flex` | `inline-flex`
+4. `position` 为 `absolute` | `fixed`
+
+所以我们可以给父元素设置`overflow:auto`来简单的实现BFC清除浮动，但是为了兼容IE最好用`overflow:hidden`。但是这样元素阴影或下拉菜单会被截断，比较局限也可`float:left`
+
+## 浮动场景
+
+### 文字环绕效果
+
+
+
+
+
