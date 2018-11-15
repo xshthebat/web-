@@ -186,7 +186,7 @@ Symbol值不能与其他类型的值进行运算
 ```js
 const symbol1 = Symbol();
 const symbol2 = Symbol(42);
-const symbol3 = Symbol('foo');
+const symbol3 = Symbol('foo'); //参数可传任何值　会调用其toString方法
 
 console.log(typeof symbol1);
 // expected output: "symbol"

@@ -11,7 +11,7 @@ console.log(typeof num--, num); //str->number NaN 将非数字字符串转为NaN
 num = false;
 console.log(typeof num--, num);//boolen->number 0 将布尔false转0
 num = true;
-console.log(typeof num--, num);//boolen->number 0 将布尔ture转0
+console.log(typeof num--, num);//boolen->number 0 将布尔ture转1
 num = {
     valueOf: () => {
         return '0123';
@@ -92,7 +92,7 @@ console.log(false<true); //bool值转为数字
 console.log(true==1);// 若有一个布尔值,比较前讲true转化为１,false为０
 console.log('1'==1); //若有一个字符串,先将其转换为数字再比较
 console.log(null==undefined);//对象比较调用valueOf再按之前比较
-console.log(NaN==NaN);//若有一个NaN就是NaN
+console.log(NaN==NaN);//若有一个NaN就是false
 //若两个都是对象,则比较他们指向;
 let obj2 = {
     valueOf:()=>{

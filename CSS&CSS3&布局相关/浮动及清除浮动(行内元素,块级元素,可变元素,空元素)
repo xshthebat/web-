@@ -360,5 +360,22 @@ CSS属性
 
 
 
+![](/home/xsh/桌面/markdown/imgs/03c5b41d537fcc1f464a.png)
 
+### 页面布局
+
+#### 多列布局
+
+浮动可以实现常规的多列布局，但个人推荐使用inline-block。
+浮动更适合实现自适应多列布局，比如左侧固定宽度，右侧根据父元素宽度自适应。
+
+![](/home/xsh/桌面/markdown/imgs/5d98e01393e981c33c7b.png)
+
+
+
+#### 多个元素内联排列
+
+如果前文提到的，浮动可以实现类似inline-block的排列，比如菜单多个元素内联排列。但个人推荐使用inline-block。
+
+![](/home/xsh/桌面/markdown/imgs/8a99a27b98fb8a8d40ac.png)
 
