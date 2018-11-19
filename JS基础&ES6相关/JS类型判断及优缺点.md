@@ -294,3 +294,170 @@ isElement = function(obj) {
 
 
 
+#### 遍历对象属性
+
+##### Object.keys()(遍历自身可枚举的属性 (可枚举，非继承属性)不含symbol )
+
+1. 在javascript中对象的属性分为可枚举与不可枚举之分,他们是由属性的 **enumerable** 的值决定的。可枚举性
+   决定了这个属性是否可以被 **for-in** 遍历到。
+2. javascript的对象一般都处于原型链中，它会从上层原型对象上继承一些属性
+
+根据这两点特性，我们可以分为 **4** 种情况来遍历javascript对象属性
+
+> 1.遍历自身可枚举的属性 (可枚举，非继承属性) **Object.keys()** 方法
+
+该方法会返回一个由一个给定**对象**的自身可枚举属性组成的**数组**，数组中的属性名的排列顺序和使用**for..in**遍历该对象时返回的顺序一致（两者的区别是 **for ..in**还会枚举其原型链上的属性 ）
+
+```js
+/**Array 对象**/
+var arr = ['a','b','c'];
+console.log(Object.keys(arr));  
+// ['0','1','2']
+
+/**Object对象**/
+var obj = {foo:'bar',baz:42};
+console.log(Object.keys(obj));
+// ["foo","baz"]
+
+/**类数组 对象  随机key排序**/
+var anObj ={100:'a',2:'b',7:'c'};
+console.log(Object.keys);
+//['2','7','100']
+
+/***getFoo 是一个不可枚举的属性**/
+var my_obj = Object.create(
+   {}, 
+   { getFoo : { value : function () { return this.foo } } }
+);
+my_obj.foo = 1;
+
+console.log(Object.keys(my_obj)); 
+// ['foo']
+```
+
+> 2.遍历自身的所有属性(可枚举，不可枚举，非继承属性) **Object.getOwnPropertyNames()**方法
+
+##### Object.getOwnPropertyNames()(可枚举，不可枚举，非继承属性,但不包括**Symbol**值作为名称的属性)
+
+该方法返回一个由指定对象的所有自身属性组成的数组(包括不可枚举属性但不包括**Symbol**值作为名称的属性)
+
+```js
+var arr = ["a", "b", "c"];
+console.log(Object.getOwnPropertyNames(arr).sort()); // ["0", "1", "2", "length"]
+
+// 类数组对象
+var obj = { 0: "a", 1: "b", 2: "c"};
+console.log(Object.getOwnPropertyNames(obj).sort()); // ["0", "1", "2"]
+
+// 使用Array.forEach输出属性名和属性值
+Object.getOwnPropertyNames(obj).forEach(function(val, idx, array) {
+  console.log(val + " -> " + obj[val]);
+});
+// 输出
+// 0 -> a
+// 1 -> b
+// 2 -> c
+
+//不可枚举属性
+var my_obj = Object.create({}, {
+  getFoo: {
+    value: function() { return this.foo; },
+    enumerable: false
+  }
+});
+my_obj.foo = 1;
+
+console.log(Object.getOwnPropertyNames(my_obj).sort()); // ["foo", "getFoo"]
+```
+
+> 3.遍历可枚举的自身属性和继承属性 （可枚举，可继承的属性） **for in**
+
+##### for-in(遍历可枚举的自身属性和继承属性 （可枚举，可继承的属性） 不含symbol)
+
+```js
+遍历对象的属性
+var obj={
+    name：'张三',
+    age : '24',
+    getAge:function(){
+        console.log(this.age);
+    }
+}
+var arry ={};
+for(var i in obj){
+    if(obj.hasOwnProperty(i)&& typeOf obj[i] != 'function'){
+        arry[i] = obj[i];
+    }
+}
+console.log(arry);
+{name:'张三',age:24}
+
+注: hasOwnProperty()方法判断对象是有某个属性(本身的属性，不是继承的属性)
+```
+
+##### 遍历所有的自身属性和继承属性
+
+```js
+(function () {
+    var getAllPropertyNames = function (obj) {
+        var props = [];
+        do {
+            props = props.concat(Object.getOwnPropertyNames(obj));
+        } while (obj = Object.getPrototypeOf(obj));
+        return props;
+    }
+    var propertys = getAllPropertyNames(window);
+    alert(propertys.length);          //276
+    alert(propertys.join("\n"));      //toString等
+})()
+```
+
+##### Reflect.ownKeys(obj)(返回一个数组,包含对象自身的所有属性,不管属性名是Symbol或字符串,也不管是否可枚举.getOwnPropertyNames+getOwnPropertySymbols)
+
+```js
+var obj = {'0':'a','1':'b','2':'c'};
+Reflect.ownKeys(obj).forEach(function(key){
+
+console.log(key,obj[key]);
+
+});
+```
+
+##### 遍历不可枚举
+
+```js
+var target = myObject;　
+var enum_and_nonenum = Object.getOwnPropertyNames(target);//全都有
+var enum_only = Object.keys(target);//可眉笔
+var nonenum_only = enum_and_nonenum.filter(function(key) {
+  var indexInEnum = enum_only.indexOf(key);　//过滤
+  if (indexInEnum == -1) {
+    // Not found in enum_only keys,
+    // meaning that the key is non-enumerable,
+    // so return true so we keep this in the filter
+    return true;
+  } else {
+    return false;
+  }
+});
+
+console.log(nonenum_only);
+```
+
+##### **getOwnPropertySymbols**
+
+方法返回直接在给定对象上找到的所有符号属性的数组。
+
+```js
+const object1 = {};
+const a = Symbol('a');
+const b = Symbol.for('b');
+
+object1[a] = 'localSymbol';
+object1[b] = 'globalSymbol';
+
+const objectSymbols = Object.getOwnPropertySymbols(object1);
+
+console.log(objectSymbols.length);
+```
+

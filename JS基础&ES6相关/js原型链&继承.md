@@ -445,9 +445,9 @@ function object(o) {
 }
 
 function prototype(child, parent) {
-    var prototype = object(parent.prototype);
-    prototype.constructor = child;
-    child.prototype = prototype;
+    var prototype = object(parent.prototype);　//创建原型
+    prototype.constructor = child;　//增强原型
+    child.prototype = prototype;　//修改原型
 }
 
 // 当我们使用的时候：
