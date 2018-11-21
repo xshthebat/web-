@@ -468,3 +468,5 @@ Function.prototype.bind2 = function (context) {
 }
 ```
 
+## 箭头函数绑定this(bind/call/apply函数方法设置this值时无效的，会被忽略,没有arguments)
+
