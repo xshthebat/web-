@@ -11,11 +11,25 @@
 
 大多数情况下，[`height`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/height)和[`width`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/width) 被设定为auto的绝对定位元素，按其内容大小调整尺寸。但是，被绝对定位的元素可以通过指定[`top`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/top)和[`bottom`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/bottom) ，保留[`height`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/height)未指定（即`auto`），来填充可用的垂直空间。它们同样可以通过指定[`left`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/left) 和 [`right`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/right)并将[`width`](https://developer.mozilla.org/zh-CN/docs/Web/CSS/width) 指定为`auto`来填充可用的水平空间(绝对定位可用top,bottoｍ)来设置高度,宽度同理
 
+Z-index 仅能在定位元素上奏效(除static)
+
 ### static(默认无定位)
 
 该关键字指定元素使用正常的布局行为，即元素在文档常规流中当前的布局位置。此时 `top`, `right`, `bottom`, `left` 和 `z-index `属性无效
 
+![](/home/xsh/桌面/markdown/imgs/2016-01-07_223349.png)
 
+
+
+1. **背景和边框** —— 形成层叠上下文的元素的背景和边框。 层叠上下文中的最低等级。
+2. **负z-index值** —— 层叠上下文内有着负z-index值的子元素。
+3. **块级盒** —— 文档流中非行内非定位子元素。
+4. **浮动盒** —— 非定位浮动元素。
+5. **行内盒** —— 文档流中行内级别非定位子元素。
+6. **z-index: 0** —— 定位元素。 这些元素形成了新的层叠上下文。
+7. **正z-index值** —— 定位元素。 层叠上下文中的最高等级。
+
+**谁大谁上**,**后来居上**
 
 ### relative(相对定位)
 

@@ -1,0 +1,126 @@
+# CSS3transform3d与硬件加速
+
+动画卡顿是在移动web开发时经常遇到的问题，解决这个问题一般会用到**css3硬件加速**。
+**css3硬件加速**这个名字感觉上很高大上，其实它做的事情可以简单概括为：通过GPU进行渲染，解放cpu。
+
+通过对比[不使用css3加速](https://link.jianshu.com/?t=http://codepen.io/SitePoint/pen/WQVxQQ)和[使用css3加速](https://link.jianshu.com/?t=http://codepen.io/SitePoint/pen/OyKXyK)两个例子，我们可以看到两者渲染的差异：
+
+![](/home/xsh/桌面/markdown/imgs/1975863-a6ef27dfe058dbeb.webp)
+
+![](/home/xsh/桌面/markdown/imgs/1975863-afa3fd1961c549f2.webp)
+
+前者通过改变`top和left`属性进行动画，fps维持在47左右，cpu一直进行计算；后者通过`transform`实现，fps在62左右，cpu基本不需要计算。对比可知通过`transform`不仅提升了渲染性能，也解放了cpu。
+
+## 原理
+
+DOM树和CSS结合后形成渲染树。渲染树中包含了大量的渲染元素，每一个渲染元素会被分到一个图层中，每个图层又会被加载到GPU形成渲染纹理。GPU中transform是不会触发 repaint 的，这一点非常类似3D绘图功能，最终这些使用 transform的图层都会由[独立的合成器进程进行处理](https://link.jianshu.com?t=https://www.chromium.org/developers/design-documents/gpu-accelerated-compositing-in-chrome)。
+
+通过chrome的timeline工具，绿色框代表需要repaint的部分，橙色框代表渲染图层，对比两者可知采用的css3硬件加速后，不会进行repaint操作，而只会产生一个渲染图层，GPU就负责操作这个渲染图层。
+
+## 复合图层(对transfrom设置比较高的index)
+
+原理中我们提到transform会创建一个图层，GPU会来执行transform的操作，这个图层且称为复合图层(composited layer)。
+ 虽然 Chrome 的启发式方法(heuristic)随着时间在不断发展进步，但是从目前来说，满足以下任意情况便会创建层：
+
+- 3D 或透视变换(perspective transform) CSS 属性
+- 使用加速视频解码的元素，如<video>
+- 拥有 3D (WebGL) 上下文或加速的 2D 上下文的元素，如<canvas>
+- 混合插件(如 Flash)
+- 对自己的 opacity 做 CSS 动画或使用一个动画 webkit 变换的元素
+- 拥有加速 CSS 过滤器的元素，如CSS filters
+- 元素有一个包含复合层的后代节点(换句话说，就是一个元素拥有一个子元素，该子元素在自己的层里)
+- 元素有一个 z-index 较低且包含一个复合层的兄弟元素(换句话说就是该元素在复合层上面渲染)
+
+果有一个元素，它的兄弟元素在复合层中渲染，而这个兄弟元素的z-index比较小，那么这个元素（不管是不是应用了硬件加速样式）也会被放到复合层中
+
+最可怕的是，浏览器有可能给复合层之后的所有相对或绝对定位的元素都创建一个复合层来渲染，于是就有了上面那个项目截图的那种效果
+
+使用3D硬件加速提升动画性能时，最好给元素增加一个z-index属性，人为干扰复合层的排序，可以有效减少chrome创建不必要的复合层，提升渲染性能，移动端优化效果尤为明显。
+
+## 启用
+
+如下几个css属性可以触发硬件加速：
+
+- transform
+- opacity
+- filter
+- will-change：哪一个属性即将发生变化，进而进行优化。
+
+上面的的例子中用到的是transform 2D，它是在运行时才会创建图层，因此在动画开始和结束时会进行repaint操作；而浏览器在渲染前就为transform 3D创建了图层。
+
+可以通过transform的3D属性强制开启GPU加速：
+
+```js
+transform: translateZ(0);
+transform: rotateZ(360deg);
+```
+
+### 注意事项
+
+- 不能让每个元素都启用硬件加速，这样会暂用很大的内存，使页面会有很强的卡顿感。
+- GPU渲染会影响字体的抗锯齿效果。这是因为GPU和CPU具有不同的渲染机制，即使最终硬件加速停止了，文本还是会在动画期间显示得很模糊。
+- Safari 3D变换会忽略z-index的层级
+
+在Safari浏览器下，此Safari浏览器包括iOS的Safari，iPhone上的微信浏览器，以及Mac OS X系统的Safari浏览器，当我们使用3D transform变换的时候，如果祖先元素没有overflow:hidden/scroll/auto等限制，则会直接忽略自身和其他元素的z-index层叠顺序设置，而直接使用真实世界的3D视角进行渲染。
+
+Safari 3D变换会忽略z-index问题解决
+
+**方法1：**
+父级，任意父级，非body级别，设置`overflow:hidden`可恢复和其他浏览器一样的渲染。
+
+**方法2：**
+以毒攻毒。有时候，页面复杂，我们不能给父级设置`overflow:hidden`，怎么办呢？
+
+杨过的情花剧毒怎么解的？断肠草啊，另一种剧毒。这里也是类似。既然“穿越”的渲染问题是由3D transform变换产生的，那么，要解决此问题，我们也可以使用3D transform变换
+
+## CSS3 transform对普通元素的N多渲染影响
+
+一个普普通通的元素，如果应用了CSS3 transform变换，即便这个transform属性值不会改变其任何表面的变化（如`scale(1)`, `translate(0,0)`），但是，实际上，对这些元素还是造成了写深远的影响。所谓表面无恙，内心奔溃的真实写照。
+
+### transform提升元素的垂直地位
+
+我们可能都知道这样一个规则，当遭遇元素`margin`负值重叠的时候，如果没有static以外的position属性值的话，后面的元素是会覆盖前面的元素的。例如下面，后面的妹子覆盖了前面的妹子：
+
+```
+<img src="mm1"><img src="mm2" style="margin-left:-60px;">
+```
+
+在`transform`出现之前，这个规则一直很稳健；但是，自从`transform`降临，这个规则就变了。元素应用了`transform`属性之后，就会变得应用了`position:relative`一个尿性，原本应该被覆盖的元素会雄起，变成覆盖其他元素，修改为如下代码
+
+```
+<img src="mm1" style="-ms-transform:scale(1);transform:scale(1);"><img src="mm2" style="margin-left:-60px;">
+```
+
+这种特性底层原理是层叠上下文，具体可参见“[深入理解CSS中的层叠上下文和层叠顺序](http://www.zhangxinxu.com/wordpress/?p=5115)”一文。
+
+### transform限制position:fixed的跟随效果(新建块级)
+
+我们应该都知道，`position:fixed`可以让元素不跟随浏览器的滚动条滚动，而且这种跟随效果连它的兄弟们`position:relative/absolute`都限制不了。但是，真是一物降一物，`position:fixed`固定效果却被小小的`transform`给干掉了，直接降级变成`position:absolute`的蛋疼表现。
+
+### transform改变overflow对absolute元素的限制
+
+在以前，`overflow`与`absolute`之间的限制规范内容大致是这样的：
+
+> absolute绝对定位元素，如果含有overflow不为visible的父级元素，同时，该父级元素以及到该绝对定位元素之间任何嵌套元素都没有position为非static属性的声明，则overflow对该absolute元素不起作用。
+
+```js
+<p style="width:96px; height:96px; border:2px solid #beceeb; overflow:hidden;">
+    <img src="mm1.jpg"style="position:absolute;" />
+</p>
+```
+
+但是，一旦我们给`overflow`容器或者与图片有嵌套关系的子元素使用`transform`声明，呵呵呵，估计`absolute`元素就要去领便当了
+
+今天再次测试发现，Chrome浏览器已经调整了渲染表现，已经和IE9+/Firefox浏览器保持了一致，也就是“无论是overflow容器还是嵌套子元素，只要有`transform`属性，就会`hidden`溢出的`absolute`元素。”
+
+### transform限制absolute的100%宽度大小
+
+我们设置`absolute`元素宽度100%, 则都会参照第一个非`static`值的`position`祖先元素计算，没有就`window`. 现在，诸位，需要把`transform`也考虑在内了
+
+结果，无论是IE9+，还是Chrome还是FireFox浏览器，所有绝对定位图片`100%`宽度，都是相对设置了`transform`的容器计算了，于是，上面的图片拉长到了西伯利亚；下面的图片被限制成了小胖墩
+
+### `transform`属性还会创建层叠上下文
+
+
+
+影响元素发生重叠时候的表现
