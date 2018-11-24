@@ -470,3 +470,24 @@ Function.prototype.bind2 = function (context) {
 
 ## 箭头函数绑定this(bind/call/apply函数方法设置this值时无效的，会被忽略,没有arguments)
 
+
+
+## new(new.target)
+
+```js
+// 第二版的代码
+function objectFactory() {
+
+    var obj = new Object(), 
+
+    Constructor = [].shift.call(arguments); //获取构造函数
+
+    obj.__proto__ = Constructor.prototype;　//原型
+
+    var ret = Constructor.apply(obj, arguments);　//执行构造函数
+
+    return typeof ret === 'object' ? ret : obj;　//判断返回值
+
+};
+```
+

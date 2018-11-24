@@ -348,6 +348,10 @@ CSS属性
 
 所以我们可以给父元素设置`overflow:auto`来简单的实现BFC清除浮动，但是为了兼容IE最好用`overflow:hidden`。但是这样元素阴影或下拉菜单会被截断，比较局限也可`float:left`
 
+#### 父级display: flow-root;(清除浮动)
+
+
+
 ## 浮动场景
 
 ### 文字环绕效果

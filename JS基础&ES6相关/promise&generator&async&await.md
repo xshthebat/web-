@@ -306,6 +306,8 @@ asyncTask()
   .catch(err => console.log(err)) // operation failed
 ```
 
+### Promise 的及早求值(在执行的时候就会发出异步操作)
+
 ### promise原理(之后再实现难)
 
 

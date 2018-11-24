@@ -90,9 +90,9 @@ JS引擎线程从消息队列中读取任务是不断循环的，每次栈被清
 
 在单线程的Javascript引擎中，setTimeout()是如何运行的呢，这里就要提到浏览器内核中的事件循环模型了。简单的讲，在Javascript执行引擎之外，有一个任务队列，当在代码中调用setTimeout()方法时，注册的延时方法会交由浏览器内核其他模块（以webkit为例，是webcore模块）处理，当延时方法到达触发条件，即到达设置的延时时间时，这一延时方法被添加至任务队列里。这一过程由浏览器内核其他模块处理，与执行引擎主线程独立，执行引擎在主线程方法执行完毕，到达空闲状态时，会从任务队列中顺序获取任务来执行，这一过程是一个不断循环的过程，称为事件循环模型。
 
-## 微任务、宏任务？
+## 微任务、宏任务？(先微后宏)
 
-宏任务一般是：包括整体代码script，setTimeout，setInterval、setImmediate。
+宏任务一般是：包括整体代码script，setTimeout，setInterval、setImmediate,requestAnimationFrame,postMessage,MessageChannel。
 
 微任务：原生Promise(有些实现的promise将then方法放到了宏任务中)、process.nextTick、Object.observe(已废弃)、 MutationObserver 记住就行了
 

@@ -414,9 +414,23 @@ req.send();
 
 ## fetch(一般先不说)
 
+### fetch和ajax
+
+不能中断，没有 abort、terminate、onTimeout 或 cancel 方法
+
+而ajax有timeout(超时事件),upload(进度)属性,以及　abort(停止)方法
+
+fetch 不支持同步请求
+
+
+
+
+
+
+
 随着前端异步的发展, XHR 这种耦合方式的书写不利于前端异步的 Promise 回调. 而且,写起来也是很复杂. fetch API 本来是在 SW(ServiceWorkers) 中提出的, 不过, 后面觉得好用, 就把他挂载到 window 对象下. 这样, 在前端的正常通信中, 我们也可以直接调用. 但, fetch 毕竟比较新, 看一下他的兼容性.
 
-这种功能以前是使用  [`XMLHttpRequest`](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)实现的。Fetch提供了一个更好的替代方法，可以很容易地被其他技术使用，例如 [`Service Workers`](https://developer.mozilla.org/zh-CN/docs/Web/API/ServiceWorker_API)。Fetch还提供了单个逻辑位置来定义其他HTTP相关概念，例如CORS和HTTP的扩展。
+这种功能以前是使用  [`XMLHttpRequest`](https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest)实现的。(浏览器现在提供新接口实现)Fetch提供了一个更好的替代方法，可以很容易地被其他技术使用，例如 [`Service Workers`](https://developer.mozilla.org/zh-CN/docs/Web/API/ServiceWorker_API)。Fetch还提供了单个逻辑位置来定义其他HTTP相关概念，例如CORS和HTTP的扩展。
 
 ![](/home/xsh/桌面/markdown/imgs/ccfee79f0eec15d2874f6d40128b7387.png)
 
