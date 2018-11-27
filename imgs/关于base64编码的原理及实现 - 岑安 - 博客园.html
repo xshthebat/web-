@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<!-- saved from url=(0061)http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html -->
+<html lang="zh-cn"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="origin">
+<title>关于base64编码的原理及实现 - 岑安 - 博客园</title>
+<meta property="og:description" content="我们的图片大部分都是可以转换成base64编码的data：image。 这个在将canvas保存为img的时候尤其有用。虽然除ie外，大部分现代浏览器都已经支持原生的基于base64的encode和d">
+<link type="text/css" rel="stylesheet" href="./关于base64编码的原理及实现 - 岑安 - 博客园_files/blog-common.css">
+<link id="MainCss" type="text/css" rel="stylesheet" href="./关于base64编码的原理及实现 - 岑安 - 博客园_files/bundle-MTClean.css">
+<link type="text/css" rel="stylesheet" href="./关于base64编码的原理及实现 - 岑安 - 博客园_files/76200.css">
+<link id="mobile-style" media="only screen and (max-width: 767px)" type="text/css" rel="stylesheet" href="./关于base64编码的原理及实现 - 岑安 - 博客园_files/bundle-MTClean-mobile.css">
+<link title="RSS" type="application/rss+xml" rel="alternate" href="http://www.cnblogs.com/hongru/rss">
+<link title="RSD" type="application/rsd+xml" rel="EditURI" href="http://www.cnblogs.com/hongru/rsd.xml">
+<link type="application/wlwmanifest+xml" rel="wlwmanifest" href="http://www.cnblogs.com/hongru/wlwmanifest.xml">
+<script src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/f.txt"></script><script src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/pubads_impl_rendering_275.js"></script><script async="" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/analytics.js"></script><script type="text/javascript" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/encoder.js"></script><script src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/jquery-2.2.0.min.js"></script>
+<script type="text/javascript">var currentBlogApp = 'hongru', cb_enable_mathjax=false;var isLogined=false;</script>
+<script src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/blog-common.js" type="text/javascript"></script>
+<link rel="preload" href="./关于base64编码的原理及实现 - 岑安 - 博客园_files/f(1).txt" as="script"><script type="text/javascript" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/f(1).txt"></script><script src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/pubads_impl_275.js" async=""></script><link rel="prefetch" href="http://tpc.googlesyndication.com/safeframe/1-0-31/html/container.html"></head>
+<body>
+<a name="top"></a>
+<!--PageBeginHtml Block Begin-->
+
+
+<!--PageBeginHtml Block End-->
+
+<div id="top">
+
+<h1><a id="Header1_HeaderTitle" class="headermaintitle" href="https://www.cnblogs.com/hongru/">叶落为重生<span style="font-size:12px;color:#999">每片落下的叶子都是为了下一次的涅槃...^_^<span></span></span></a></h1>
+<p id="tagline"></p>
+</div>
+<div id="main">
+	
+<div id="post_detail">
+	<div class="post">
+		<h2>
+			<a id="cb_post_title_url" href="https://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html">关于base64编码的原理及实现</a>
+		</h2>
+		<div id="cnblogs_post_body" class="blogpost-body"><p>我们的图片大部分都是可以转换成base64编码的data：image。 这个在将canvas保存为img的时候尤其有用。虽然除ie外，大部分现代浏览器都已经支持原生的基于base64的encode和decode，例如btoa和atob。（将canvas画布保存成img并强制改变mimetype进行下载，会在下一篇记录）</p>
+<p>但是处于好奇心，还是驱使我去了解下base64编码的原理。以便也在不支持原生base64编码的ie下可以得以实现。</p>
+<p>【Base64】<br>-base64的编码都是按字符串长度，以每3个8bit的字符为一组，<br>-然后针对每组，首先获取每个字符的ASCII编码，<br>-然后将ASCII编码转换成8bit的二进制，得到一组3*8=24bit的字节<br>-然后再将这24bit划分为4个6bit的字节，并在每个6bit的字节前面都填两个高位0，得到4个8bit的字节<br>-然后将这4个8bit的字节转换成10进制，对照Base64编码表 （下表），得到对应编码后的字符。</p>
+<p>（注：1. 要求被编码字符是8bit的，所以须在ASCII编码范围内，\u0000-\u00ff，中文就不行。<br>　　　2. 如果被编码字符长度不是3的倍数的时候，则都用0代替，对应的输出字符为=）</p>
+<table class="base64table">
+<thead>
+<tr><th colspan="11"><strong>Base64 编码表</strong></th></tr>
+</thead>
+<tbody>
+<tr><th scope="col">Value</th><th scope="col">Char</th>
+<td rowspan="18">&nbsp;</td>
+<th scope="col">Value</th><th scope="col">Char</th>
+<td rowspan="18">&nbsp;</td>
+<th scope="col">Value</th><th scope="col">Char</th>
+<td rowspan="18">&nbsp;</td>
+<th scope="col">Value</th><th scope="col">Char</th></tr>
+<tr>
+<td>0</td>
+<td>A</td>
+<td>16</td>
+<td>Q</td>
+<td>32</td>
+<td>g</td>
+<td>48</td>
+<td>w</td>
+</tr>
+<tr>
+<td>1</td>
+<td>B</td>
+<td>17</td>
+<td>R</td>
+<td>33</td>
+<td>h</td>
+<td>49</td>
+<td>x</td>
+</tr>
+<tr>
+<td>2</td>
+<td>C</td>
+<td>18</td>
+<td>S</td>
+<td>34</td>
+<td>i</td>
+<td>50</td>
+<td>y</td>
+</tr>
+<tr>
+<td>3</td>
+<td>D</td>
+<td>19</td>
+<td>T</td>
+<td>35</td>
+<td>j</td>
+<td>51</td>
+<td>z</td>
+</tr>
+<tr>
+<td>4</td>
+<td>E</td>
+<td>20</td>
+<td>U</td>
+<td>36</td>
+<td>k</td>
+<td>52</td>
+<td>0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>F</td>
+<td>21</td>
+<td>V</td>
+<td>37</td>
+<td>l</td>
+<td>53</td>
+<td>1</td>
+</tr>
+<tr>
+<td>6</td>
+<td>G</td>
+<td>22</td>
+<td>W</td>
+<td>38</td>
+<td>m</td>
+<td>54</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>H</td>
+<td>23</td>
+<td>X</td>
+<td>39</td>
+<td>n</td>
+<td>55</td>
+<td>3</td>
+</tr>
+<tr>
+<td>8</td>
+<td>I</td>
+<td>24</td>
+<td>Y</td>
+<td>40</td>
+<td>o</td>
+<td>56</td>
+<td>4</td>
+</tr>
+<tr>
+<td>9</td>
+<td>J</td>
+<td>25</td>
+<td>Z</td>
+<td>41</td>
+<td>p</td>
+<td>57</td>
+<td>5</td>
+</tr>
+<tr>
+<td>10</td>
+<td>K</td>
+<td>26</td>
+<td>a</td>
+<td>42</td>
+<td>q</td>
+<td>58</td>
+<td>6</td>
+</tr>
+<tr>
+<td>11</td>
+<td>L</td>
+<td>27</td>
+<td>b</td>
+<td>43</td>
+<td>r</td>
+<td>59</td>
+<td>7</td>
+</tr>
+<tr>
+<td>12</td>
+<td>M</td>
+<td>28</td>
+<td>c</td>
+<td>44</td>
+<td>s</td>
+<td>60</td>
+<td>8</td>
+</tr>
+<tr>
+<td>13</td>
+<td>N</td>
+<td>29</td>
+<td>d</td>
+<td>45</td>
+<td>t</td>
+<td>61</td>
+<td>9</td>
+</tr>
+<tr>
+<td>14</td>
+<td>O</td>
+<td>30</td>
+<td>e</td>
+<td>46</td>
+<td>u</td>
+<td>62</td>
+<td>+</td>
+</tr>
+<tr>
+<td>15</td>
+<td>P</td>
+<td>31</td>
+<td>f</td>
+<td>47</td>
+<td>v</td>
+<td>63</td>
+<td>/<br><br></td>
+</tr>
+</tbody>
+</table>
+<p>比如举下面2个例子：<br>a) 字符长度为能被3整除时：比如“Tom” ：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>            T           o           m<br>ASCII:      <span style="color: #800080;">84</span>          <span style="color: #800080;">111</span>         <span style="color: #800080;">109</span><br>8bit字节:   <span style="color: #800080;">01010100</span>    <span style="color: #800080;">01101111</span>    <span style="color: #800080;">01101101</span><br>6bit字节:     <span style="color: #800080;">010101</span>      <span style="color: #800080;">000110</span>      <span style="color: #800080;">111101</span>      <span style="color: #800080;">101101</span><br>十进制:     <span style="color: #800080;">21</span>          <span style="color: #800080;">6</span>           <span style="color: #800080;">61</span>          <span style="color: #800080;">45</span><br>对应编码:   V           G           <span style="color: #800080;">9</span>           t  </pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>所以，btoa('Tom') = VG9t</p>
+<p>b) 字符串长度不能被3整除时，比如“Lucy”：</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre>            L           u           c           y<br>ASCII:      <span style="color: #800080;">76</span>          <span style="color: #800080;">117</span>         <span style="color: #800080;">99</span>          <span style="color: #800080;">121</span><br>8bit字节:   <span style="color: #800080;">01001100</span>    <span style="color: #800080;">01110101</span>    <span style="color: #800080;">01100011</span>    <span style="color: #800080;">01111001</span>      <span style="color: #800080;">00000000</span>    <span style="color: #800080;">00000000</span><br>6bit字节:     <span style="color: #800080;">010011</span>      <span style="color: #800080;">000111</span>      <span style="color: #800080;">010101</span>      <span style="color: #800080;">100011</span>      <span style="color: #800080;">011110</span>  <span style="color: #800080;">010000</span>  <span style="color: #800080;">000000</span>  <span style="color: #800080;">000000</span><br>十进制:     <span style="color: #800080;">19</span>          <span style="color: #800080;">7</span>           <span style="color: #800080;">21</span>          <span style="color: #800080;">35</span>             <span style="color: #800080;">30</span>      <span style="color: #800080;">16</span>      (异常) (异常)      <br>对应编码:   T           H           V           j               e       Q       =       =</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>由于Lucy只有4个字母，所以按3个一组的话，第二组还有两个空位，所以需要用0来补齐。这里就需要注意，因为是需要补齐而出现的0，所以转化成十进制的时候就不能按常规用base64编码表来对应，所以不是a， 可以理解成为一种特殊的“异常”，编码应该对应“=”。</p>
+<p>有了上面的理论，那我们实现一个base64编码就容易了。<br>&nbsp;</p>
+<div class="cnblogs_code"><div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div>
+<pre><span style="color: #008000;">/*</span><span style="color: #008000;">*<br> * base64 encoding &amp; decoding<br> * for fixing browsers which don't support Base64 | btoa |atob<br> </span><span style="color: #008000;">*/</span><br><br>(<span style="color: #0000ff;">function</span> (win, undefined) {<br> <br>     <span style="color: #0000ff;">var</span> Base64 = <span style="color: #0000ff;">function</span> () {<br>        <span style="color: #0000ff;">var</span> base64hash = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';<br>        <br>        <span style="color: #008000;">//</span><span style="color: #008000;"> btoa method</span><span style="color: #008000;"><br></span>        <span style="color: #0000ff;">function</span> _btoa (s) {<br>            <span style="color: #0000ff;">if</span> (/([^\u0000-\u00ff])/.test(s)) {<br>                <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Error('INVALID_CHARACTER_ERR');<br>            }    <br>            <span style="color: #0000ff;">var</span> i = 0,<br>                prev,<br>                ascii,<br>                mod,<br>                result = [];<br><br>            <span style="color: #0000ff;">while</span> (i &lt; s.length) {<br>                ascii = s.charCodeAt(i);<br>                mod = i % 3;<br><br>                <span style="color: #0000ff;">switch</span>(mod) {<br>                    <span style="color: #008000;">//</span><span style="color: #008000;"> 第一个6位只需要让8位二进制右移两位</span><span style="color: #008000;"><br></span>                    <span style="color: #0000ff;">case</span> 0:<br>                        result.push(base64hash.charAt(ascii &gt;&gt; 2));<br>                        <span style="color: #0000ff;">break</span>;<br>                    <span style="color: #008000;">//</span><span style="color: #008000;">第二个6位 = 第一个8位的后两位 + 第二个8位的前4位</span><span style="color: #008000;"><br></span>                    <span style="color: #0000ff;">case</span> 1:<br>                        result.push(base64hash.charAt((prev &amp; 3) &lt;&lt; 4 | (ascii &gt;&gt; 4)));<br>                        <span style="color: #0000ff;">break</span>;<br>                    <span style="color: #008000;">//</span><span style="color: #008000;">第三个6位 = 第二个8位的后4位 + 第三个8位的前2位</span><span style="color: #008000;"><br></span>                    <span style="color: #008000;">//</span><span style="color: #008000;">第4个6位 = 第三个8位的后6位</span><span style="color: #008000;"><br></span>                    <span style="color: #0000ff;">case</span> 2:<br>                        result.push(base64hash.charAt((prev &amp; 0x0f) &lt;&lt; 2 | (ascii &gt;&gt; 6)));<br>                        result.push(base64hash.charAt(ascii &amp; 0x3f));<br>                        <span style="color: #0000ff;">break</span>;<br>                }<br><br>                prev = ascii;<br>                i ++;<br>            }<br><br>            <span style="color: #008000;">//</span><span style="color: #008000;"> 循环结束后看mod, 为0 证明需补3个6位，第一个为最后一个8位的最后两位后面补4个0。另外两个6位对应的是异常的“=”；</span><span style="color: #008000;"><br></span>            <span style="color: #008000;">//</span><span style="color: #008000;"> mod为1，证明还需补两个6位，一个是最后一个8位的后4位补两个0，另一个对应异常的“=”</span><span style="color: #008000;"><br></span>            <span style="color: #0000ff;">if</span>(mod == 0) {<br>                result.push(base64hash.charAt((prev &amp; 3) &lt;&lt; 4));<br>                result.push('==');<br>            } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (mod == 1) {<br>                result.push(base64hash.charAt((prev &amp; 0x0f) &lt;&lt; 2));<br>                result.push('=');<br>            }<br><br>            <span style="color: #0000ff;">return</span> result.join('');<br>        }<br><br>        <span style="color: #008000;">//</span><span style="color: #008000;"> atob method</span><span style="color: #008000;"><br></span>        <span style="color: #008000;">//</span><span style="color: #008000;"> 逆转encode的思路即可</span><span style="color: #008000;"><br></span>        <span style="color: #0000ff;">function</span> _atob (s) {<br>            s = s.replace(/\s|=/g, '');<br>            <span style="color: #0000ff;">var</span> cur,<br>                prev,<br>                mod,<br>                i = 0,<br>                result = [];<br><br>            <span style="color: #0000ff;">while</span> (i &lt; s.length) {<br>                cur = base64hash.indexOf(s.charAt(i));<br>                mod = i % 4;<br><br>                <span style="color: #0000ff;">switch</span> (mod) {<br>                    <span style="color: #0000ff;">case</span> 0:<br>                        <span style="color: #008000;">//</span><span style="color: #008000;">TODO</span><span style="color: #008000;"><br></span>                        <span style="color: #0000ff;">break</span>;<br>                    <span style="color: #0000ff;">case</span> 1:<br>                        result.push(String.fromCharCode(prev &lt;&lt; 2 | cur &gt;&gt; 4));<br>                        <span style="color: #0000ff;">break</span>;<br>                    <span style="color: #0000ff;">case</span> 2:<br>                        result.push(String.fromCharCode((prev &amp; 0x0f) &lt;&lt; 4 | cur &gt;&gt; 2));<br>                        <span style="color: #0000ff;">break</span>;<br>                    <span style="color: #0000ff;">case</span> 3:<br>                        result.push(String.fromCharCode((prev &amp; 3) &lt;&lt; 6 | cur));<br>                        <span style="color: #0000ff;">break</span>;<br>                        <br>                }<br><br>                prev = cur;<br>                i ++;<br>            }<br><br>            <span style="color: #0000ff;">return</span> result.join('');<br>        }<br><br>        <span style="color: #0000ff;">return</span> {<br>            btoa: _btoa,<br>            atob: _atob,<br>            encode: _btoa,<br>            decode: _atob<br>        };<br>    }();<br><br>    <span style="color: #0000ff;">if</span> (!win.Base64) { win.Base64 = Base64 }<br>    <span style="color: #0000ff;">if</span> (!win.btoa) { win.btoa = Base64.btoa }<br>    <span style="color: #0000ff;">if</span> (!win.atob) { win.atob = Base64.atob }<br><br> })(window)</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a href="javascript:void(0);" onclick="copyCnblogsCode(this)" title="复制代码"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/copycode.gif" alt="复制代码"></a></span></div></div>
+<p>&nbsp;</p>
+<p><a class="btn" href="http://hongru.github.com/proj/base64/test.html" target="_blank">Base64 example</a></p>
+<p>&nbsp;</p></div><div id="MySignature"></div>
+<div class="clear"></div>
+<div id="blog_post_info_block">
+<div id="BlogPostCategory"></div>
+<div id="EntryTag"></div>
+<div id="blog_post_info"><div id="green_channel">
+        <a href="javascript:void(0);" id="green_channel_digg" onclick="DiggIt(2321397,cb_blogId,1);green_channel_success(this,&#39;谢谢推荐！&#39;);">好文要顶</a>
+            <a id="green_channel_follow" onclick="follow(&#39;6614b77c-13c5-df11-ac81-842b2b196315&#39;);" href="javascript:void(0);">关注我</a>
+    <a id="green_channel_favorite" onclick="AddToWz(cb_entryId);return false;" href="javascript:void(0);">收藏该文</a>
+    <a id="green_channel_weibo" href="javascript:void(0);" title="分享至新浪微博" onclick="ShareToTsina()"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/icon_weibo_24.png" alt=""></a>
+    <a id="green_channel_wechat" href="javascript:void(0);" title="分享至微信" onclick="shareOnWechat()"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/wechat.png" alt=""></a>
+</div>
+<div id="author_profile">
+    <div id="author_profile_info" class="author_profile_info">
+            <a href="http://home.cnblogs.com/u/hongru/" target="_blank"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/u160412.jpg" class="author_avatar" alt=""></a>
+        <div id="author_profile_detail" class="author_profile_info">
+            <a href="http://home.cnblogs.com/u/hongru/">岑安</a><br>
+            <a href="http://home.cnblogs.com/u/hongru/followees">关注 - 8</a><br>
+            <a href="http://home.cnblogs.com/u/hongru/followers">粉丝 - 999</a>
+        </div>
+    </div>
+    <div class="clear"></div>
+    <div id="author_profile_honor">荣誉：<a href="http://www.cnblogs.com/expert/" target="_blank">推荐博客</a></div>
+    <div id="author_profile_follow">
+                <a href="javascript:void(0);" onclick="follow(&#39;6614b77c-13c5-df11-ac81-842b2b196315&#39;);return false;">+加关注</a>
+    </div>
+</div>
+<div id="div_digg">
+    <div class="diggit" onclick="votePost(2321397,&#39;Digg&#39;)">
+        <span class="diggnum" id="digg_count">17</span>
+    </div>
+    <div class="buryit" onclick="votePost(2321397,&#39;Bury&#39;)">
+        <span class="burynum" id="bury_count">0</span>
+    </div>
+    <div class="clear"></div>
+    <div class="diggword" id="digg_tips">
+    </div>
+</div>
+<script type="text/javascript">
+    currentDiggType = 0;
+</script></div>
+<div class="clear"></div>
+<div id="post_next_prev"><a href="https://www.cnblogs.com/hongru/archive/2012/01/10/2318188.html" class="p_n_p_prefix">« </a> 上一篇：<a href="https://www.cnblogs.com/hongru/archive/2012/01/10/2318188.html" title="发布于2012-01-10 15:33">追踪子弹-初中简单的物理和数学</a><br><a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2322540.html" class="p_n_p_prefix">» </a> 下一篇：<a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2322540.html" title="发布于2012-01-14 20:27">canvas保存为data:image扩展功能的实现</a><br></div>
+</div>
+
+
+		<p class="postfoot">
+			posted on <span id="post-date">2012-01-14 11:47</span> <a href="https://www.cnblogs.com/hongru/">岑安</a> 阅读(<span id="post_view_count">47906</span>) 评论(<span id="post_comment_count">16</span>)  <a href="https://i.cnblogs.com/EditPosts.aspx?postid=2321397" rel="nofollow">编辑</a> <a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#" onclick="AddToWz(2321397);return false;">收藏</a>
+		</p>
+	</div>
+	<script type="text/javascript">var allowComments=true,cb_blogId=76200,cb_entryId=2321397,cb_blogApp=currentBlogApp,cb_blogUserGuid='6614b77c-13c5-df11-ac81-842b2b196315',cb_entryCreatedDate='2012/1/14 11:47:00';loadViewCount(cb_entryId);var cb_postType=1;</script>
+	
+</div><a name="!comments"></a><div id="blog-comments-placeholder"><div id="comments_pager_top"></div>
+
+<div id="comments">
+<h3>Feedback</h3>
+	
+	
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2293833" class="layer">#1楼</a><a name="2293833" id="comment_anchor_2293833"></a>
+					<span>
+						 <span class="comment_date">2012-01-14 12:20</span>
+					</span>
+				<a id="a_comment_author_2293833" href="http://home.cnblogs.com/u/274887/" target="_blank">Homer_Simpson</a> <a href="http://msg.cnblogs.com/send/Homer_Simpson" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2293833" class="blog_comment_body">暂时看不懂，但是感觉很NB。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2293833,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2293833,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2293938" class="layer">#2楼</a><a name="2293938" id="comment_anchor_2293938"></a>
+					<span>
+						 <span class="comment_date">2012-01-14 19:47</span>
+					</span>
+				<a id="a_comment_author_2293938" href="https://www.cnblogs.com/harold/" target="_blank">深海沉</a> <a href="http://msg.cnblogs.com/send/%E6%B7%B1%E6%B5%B7%E6%B2%89" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2293938" class="blog_comment_body">不错，喜欢</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2293938,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2293938,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2294654" class="layer">#3楼</a><a name="2294654" id="comment_anchor_2294654"></a>
+					<span>
+						 <span class="comment_date">2012-01-16 12:03</span>
+					</span>
+				<a id="a_comment_author_2294654" href="https://www.cnblogs.com/rrooyy/" target="_blank">良村</a> <a href="http://msg.cnblogs.com/send/%E8%89%AF%E6%9D%91" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2294654" class="blog_comment_body">好像无法处理中文</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2294654,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2294654,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2294654_avatar" style="display:none;">http://pic.cnblogs.com/face/u4069.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2294702" class="layer">#4楼</a><a name="2294702" id="comment_anchor_2294702"></a>[<span class="louzhu">楼主</span>]
+					<span>
+						 <span class="comment_date">2012-01-16 13:09</span>
+					</span>
+				<a id="a_comment_author_2294702" href="https://www.cnblogs.com/hongru/" target="_blank">岑安</a> <a href="http://msg.cnblogs.com/send/%E5%B2%91%E5%AE%89" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2294702" class="blog_comment_body"><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2294654" title="查看所回复的评论" onclick="commentManager.renderComments(0,50,2294654);">@</a>
+良村<br>（注：1. 要求被编码字符是8bit的，所以须在ASCII编码范围内，\u0000-\u00ff，中文就不行。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2294702,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2294702,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2294702_avatar" style="display:none;">http://pic.cnblogs.com/face/u160412.jpg</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2342311" class="layer">#5楼</a><a name="2342311" id="comment_anchor_2342311"></a>
+					<span>
+						 <span class="comment_date">2012-03-28 20:36</span>
+					</span>
+				<a id="a_comment_author_2342311" href="https://www.cnblogs.com/_franky/" target="_blank">Franky</a> <a href="http://msg.cnblogs.com/send/Franky" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2342311" class="blog_comment_body">把循环的step 改为3 .<br>在余数为1或2的情况,即最后产生的2-3个有效字符的逻辑, 拿到循环体外处理. 然后每次push(char1,char2,char2,char4).<br>我想，在处理 长字符串的时候，可能会有2-3倍的性能提升吧.</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2342311,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2342311,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2342311_avatar" style="display:none;">http://pic.cnblogs.com/face/u53436.jpg</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2342346" class="layer">#6楼</a><a name="2342346" id="comment_anchor_2342346"></a>[<span class="louzhu">楼主</span>]
+					<span>
+						 <span class="comment_date">2012-03-28 22:01</span>
+					</span>
+				<a id="a_comment_author_2342346" href="https://www.cnblogs.com/hongru/" target="_blank">岑安</a> <a href="http://msg.cnblogs.com/send/%E5%B2%91%E5%AE%89" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2342346" class="blog_comment_body"><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2342311" title="查看所回复的评论" onclick="commentManager.renderComments(0,50,2342311);">@</a>
+Franky<br>嗯，确实啊，追求细节的教主， 赞 : )</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2342346,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2342346,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2342346_avatar" style="display:none;">http://pic.cnblogs.com/face/u160412.jpg</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2342351" class="layer">#7楼</a><a name="2342351" id="comment_anchor_2342351"></a>
+					<span>
+						 <span class="comment_date">2012-03-28 22:10</span>
+					</span>
+				<a id="a_comment_author_2342351" href="https://www.cnblogs.com/_franky/" target="_blank">Franky</a> <a href="http://msg.cnblogs.com/send/Franky" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2342351" class="blog_comment_body"><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2342346" title="查看所回复的评论" onclick="commentManager.renderComments(0,50,2342346);">@</a>
+岑安<br>客气啦 :)</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2342351,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2342351,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2342351_avatar" style="display:none;">http://pic.cnblogs.com/face/u53436.jpg</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2908194" class="layer">#8楼</a><a name="2908194" id="comment_anchor_2908194"></a>
+					<span>
+						 <span class="comment_date">2014-03-31 16:59</span>
+					</span>
+				<a id="a_comment_author_2908194" href="https://www.cnblogs.com/jiaoyiping/" target="_blank">勿念咖啡香</a> <a href="http://msg.cnblogs.com/send/%E5%8B%BF%E5%BF%B5%E5%92%96%E5%95%A1%E9%A6%99" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2908194" class="blog_comment_body">不明觉厉</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2908194,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2908194,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_2908194_avatar" style="display:none;">http://pic.cnblogs.com/face/407044/20160920164200.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2930445" class="layer">#9楼</a><a name="2930445" id="comment_anchor_2930445"></a>
+					<span>
+						 <span class="comment_date">2014-05-04 10:08</span>
+					</span>
+				<a id="a_comment_author_2930445" href="http://home.cnblogs.com/u/629990/" target="_blank">学习蚂蚁</a> <a href="http://msg.cnblogs.com/send/%E5%AD%A6%E4%B9%A0%E8%9A%82%E8%9A%81" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_2930445" class="blog_comment_body">这个方法根据图片地址把图片转换成base64decode的吗？</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(2930445,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(2930445,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3013868" class="layer">#10楼</a><a name="3013868" id="comment_anchor_3013868"></a>
+					<span>
+						 <span class="comment_date">2014-08-21 16:57</span>
+					</span>
+				<a id="a_comment_author_3013868" href="https://www.cnblogs.com/hongfei/" target="_blank">曾是土木人</a> <a href="http://msg.cnblogs.com/send/%E6%9B%BE%E6%98%AF%E5%9C%9F%E6%9C%A8%E4%BA%BA" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3013868" class="blog_comment_body"><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#2294654" title="查看所回复的评论" onclick="commentManager.renderComments(0,50,2294654);">@</a>
+良村<br>这个可以处理中文：<a href="http://my.oschina.net/goal/blog/201032#OSC_h2_11" target="_blank">http://my.oschina.net/goal/blog/201032#OSC_h2_11</a></div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3013868,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3013868,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_3013868_avatar" style="display:none;">http://pic.cnblogs.com/face/350329/20170403195601.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3092699" class="layer">#11楼</a><a name="3092699" id="comment_anchor_3092699"></a>
+					<span>
+						 <span class="comment_date">2014-12-24 10:08</span>
+					</span>
+				<a id="a_comment_author_3092699" href="https://www.cnblogs.com/lovebaoqiang/" target="_blank">xia客lang人</a> <a href="http://msg.cnblogs.com/send/xia%E5%AE%A2lang%E4%BA%BA" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3092699" class="blog_comment_body">好文。不过对这种位运算还是有点陌生。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3092699,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3092699,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_3092699_avatar" style="display:none;">http://pic.cnblogs.com/face/u478148.jpg?id=11232949</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3102271" class="layer">#12楼</a><a name="3102271" id="comment_anchor_3102271"></a>
+					<span>
+						 <span class="comment_date">2015-01-07 17:41</span>
+					</span>
+				<a id="a_comment_author_3102271" href="http://home.cnblogs.com/u/711622/" target="_blank">BobScript</a> <a href="http://msg.cnblogs.com/send/BobScript" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3102271" class="blog_comment_body">虽然有时很好奇Base64编码原理，不过一直没有研究过，赞~<br><br>貌似发现了一个小问题：<br>【所以不是a， 可以理解成为】<br>这里的a应该是大写的A吧？</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3102271,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3102271,&#39;Bury&#39;,this)">反对(0)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3392081" class="layer">#13楼</a><a name="3392081" id="comment_anchor_3392081"></a>
+					<span>
+						 <span class="comment_date">2016-03-25 16:56</span>
+					</span>
+				<a id="a_comment_author_3392081" href="https://www.cnblogs.com/xqyblogs/" target="_blank">xqy181822137</a> <a href="http://msg.cnblogs.com/send/xqy181822137" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3392081" class="blog_comment_body">如果有办法对中文字符也能字节读取就能中文的了</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3392081,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3392081,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_3392081_avatar" style="display:none;">http://pic.cnblogs.com/face/855524/20160325115404.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3545625" class="layer">#14楼</a><a name="3545625" id="comment_anchor_3545625"></a>
+					<span>
+						 <span class="comment_date">2016-11-01 15:11</span>
+					</span>
+				<a id="a_comment_author_3545625" href="https://www.cnblogs.com/363546828/" target="_blank">viola</a> <a href="http://msg.cnblogs.com/send/viola" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3545625" class="blog_comment_body">case 2:<br>                        result.push(base64hash.charAt((prev &amp; 0x0f) &lt;&lt; 2 | (ascii &gt;&gt; 6)));<br>                        result.push(base64hash.charAt(ascii &amp; 0x3f));<br><br>这两句错了。<br>应该是左移四位。<br><br>case 2:<br>                        result.push(base64hash.charAt((prev &amp; 0x0f) &lt;&lt;4 | (ascii &gt;&gt; 6)));<br>                        result.push(base64hash.charAt(ascii &amp; 0x3f));</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3545625,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3545625,&#39;Bury&#39;,this)">反对(2)</a></div>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3791097" class="layer">#15楼</a><a name="3791097" id="comment_anchor_3791097"></a>
+					<span>
+						 <span class="comment_date">2017-09-20 16:23</span>
+					</span>
+				<a id="a_comment_author_3791097" href="https://www.cnblogs.com/lauzhishuai/" target="_blank">lauzhishuai</a> <a href="http://msg.cnblogs.com/send/lauzhishuai" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_3791097" class="blog_comment_body"><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3545625" title="查看所回复的评论" onclick="commentManager.renderComments(0,50,3545625);">@</a>
+viola<br>没有错，因为他需要的是拼接后面字符串的两位，所以仅仅先把前一个ascii的前四位置0，然后左右两位，和下一个ascii的前两位相或，得到的就是正确值</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(3791097,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(3791097,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_3791097_avatar" style="display:none;">http://pic.cnblogs.com/face/879468/20170116155419.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+			<h4>
+				<a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#4079239" class="layer">#16楼</a><a name="4079239" id="comment_anchor_4079239"></a><span id="comment-maxId" style="display:none;">4079239</span><span id="comment-maxDate" style="display:none;">2018/9/28 18:11:46</span>
+					<span>
+						 <span class="comment_date">2018-09-28 18:11</span>
+					</span>
+				<a id="a_comment_author_4079239" href="https://www.cnblogs.com/maoyan/" target="_blank">猫眼三姐妹</a> <a href="http://msg.cnblogs.com/send/%E7%8C%AB%E7%9C%BC%E4%B8%89%E5%A7%90%E5%A6%B9" title="发送站内短消息" class="sendMsg2This">&nbsp;</a>
+			</h4>
+			<p>
+				</p><div id="comment_body_4079239" class="blog_comment_body">nice.<br>看懂了。</div><div class="comment_vote"><a href="javascript:void(0);" class="comment_digg" onclick="return voteComment(4079239,&#39;Digg&#39;,this)">支持(0)</a><a href="javascript:void(0);" class="comment_bury" onclick="return voteComment(4079239,&#39;Bury&#39;,this)">反对(0)</a></div><span id="comment_4079239_avatar" style="display:none;">http://pic.cnblogs.com/face/369632/20130617152138.png</span>
+				&nbsp;&nbsp;<span class="comment_actions"></span>
+			<p></p>
+		
+</div><div id="comments_pager_bottom"></div></div><script type="text/javascript">var commentManager = new blogCommentManager();commentManager.renderComments(0);</script>
+<div id="comment_form" class="commentform">
+<a name="commentform"></a>
+<div id="divCommentShow"></div>
+<div id="comment_nav"><span id="span_refresh_tips"></span><a href="javascript:void(0);" onclick="return RefreshCommentList();" id="lnk_RefreshComments" runat="server" clientidmode="Static">刷新评论</a><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#" onclick="return RefreshPage();">刷新页面</a><a href="http://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#top">返回顶部</a></div>
+<div id="comment_form_container"><div class="login_tips">注册用户登录后才能发表评论，请 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return login(&#39;commentform&#39;);">登录</a> 或 <a rel="nofollow" href="javascript:void(0);" class="underline" onclick="return register();">注册</a>，<a href="http://www.cnblogs.com/">访问</a>网站首页。</div></div>
+<div class="ad_text_commentbox" id="ad_text_under_commentbox"></div>
+<div id="ad_t2"><a href="http://www.ucancode.com/index.htm" target="_blank">【推荐】超50万VC++源码: 大型组态工控、电力仿真CAD与GIS源码库！</a><br><a href="http://clickc.admaster.com.cn/c/a116493,b2949399,c1705,i0,m101,8a1,8b3,h" target="_blank" onclick="ga(&#39;send&#39;, &#39;event&#39;, &#39;Link&#39;, &#39;click&#39;, &#39;T2-华为云&#39;)">【活动】申请成为华为云云享专家 尊享9大权益</a><br><a href="https://www.grapecity.com.cn/developer/spreadjs?utm_source=cnblogs&amp;utm_medium=blogpage&amp;utm_term=bottom&amp;utm_content=SpreadJS&amp;utm_campaign=community" target="_blank" onclick="ga(&#39;send&#39;, &#39;event&#39;, &#39;Link&#39;, &#39;click&#39;, &#39;T2-SpreadJS&#39;)">【工具】SpreadJS纯前端表格控件，可嵌入应用开发的在线Excel</a><br><a href="https://cloud.tencent.com/act/group/amd/index?fromSource=gwzcw.1608278.1608278.1608278" target="_blank" onclick="ga(&#39;send&#39;, &#39;event&#39;, &#39;Link&#39;, &#39;click&#39;, &#39;T2-腾讯云&#39;)">【腾讯云】拼团福利，AMD云服务器8元/月</a><br></div>
+<div id="opt_under_post"></div>
+<div id="cnblogs_c1" class="c_ad_block"><a href="https://cloud.tencent.com/act/double11?fromSource=gwzcw.1608279.1608279.1608279" target="_blank"><img width="300" height="250" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/24442-20181116205423366-85420768.jpg" alt="qcloud" onclick="ga(&#39;send&#39;, &#39;event&#39;, &#39;Link&#39;, &#39;click&#39;, &#39;C1&#39;);"></a></div>
+<div id="under_post_news"><div class="itnews c_ad_block"><b>相关博文：</b><br>·  <a href="https://www.cnblogs.com/zqifa/p/base64-1.html" target="_blank" onclick="clickRecomItmem(5786773,&#39;aNpD2r/OJsF3walwvnqj2b4IQMdY1sx8hUtAvFcGJFD+mg+ymcx5ESvyO+Y5DH+CEiRjNozf8i13Bz/cdmF6h4LeLvWZRDC1/TarCMmtURImH+xqXC+vHecuLEESN2olm6ML4D7GBhMC60vnrys=&#39;)">base64编码的原理及实现</a><br>·  <a href="https://www.cnblogs.com/zichi/p/5070895.html" target="_blank" onclick="clickRecomItmem(5070895,&#39;VQEGJnI6cHriftCeaRPqqMsF/etTxqCP3Kq3p0YJjmcHODHIGUXSoNkp82gcGNQsyf9Wx/kwVsYwFhcEdhxy9WKdl+MHiZOjX7HQPEsLfCHEr5lk2+DHPUbI1J7cD9n11RL3d4fXACD5pHZk&#39;)">获取图片base64编码的几种方法</a><br>·  <a href="https://www.cnblogs.com/0616--ataozhijia/p/4324918.html" target="_blank" onclick="clickRecomItmem(4324918,&#39;HQQFYdtZuDBd5Ki3Woigv4ANdkhZ7g7y34kmKTrWwaw5pDXkTcH+CUZ1RWQhp5xSPO57KM+SMc5+grdcFBo7ib5kSKxm6T32ZN7QFxtNLQVVT07g+Qbh+IPpppqkJJIXTVl2c7orrW7IcXdpr5A=&#39;)">[编解码]   关于base64编码的原理及实现</a><br>·  <a href="https://www.cnblogs.com/mina-huojian66/p/6043852.html" target="_blank" onclick="clickRecomItmem(6043852,&#39;QfSapKN52yTGKKBUsLkvaQPlnOuj4JF2HoNftXg6yV2LYiEPBWZ1WjdWpkh1K2FbXxYxRCG0z8GvUpcT7DIBMLvXDF5Jhntm0oX3U2fSKvb4d9EtGsOePf+MgDtTsUReDSZ112dvjJ7VsFEJgL8=&#39;)">使用btoa和atob来进行Base64转码和解码</a><br>·  <a href="https://www.cnblogs.com/mayidudu/p/6062112.html" target="_blank" onclick="clickRecomItmem(6062112,&#39;/wCe58LcyXwpts+GkuJ84CT9pt8/uVyYnYO2ntQq5t+AJOqbmFc2J4PasoXfk9Mr1FJ/Vv33pAbLOaYwwzrNjuzBHj3DOPWU8QwWT+GA+U0mwx0aBTZstpi7j/UR0c40/9uYCuupJmi6lcXI&#39;)">base64 convert to file</a><br></div></div>
+<script async="async" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/gpt.js"></script>
+<script>
+  var googletag = googletag || {};
+  googletag.cmd = googletag.cmd || [];
+</script>
+
+<script>
+  googletag.cmd.push(function() {
+    googletag.defineSlot('/1090369/C2', [468, 60], 'div-gpt-ad-1539008685004-0').addService(googletag.pubads());
+    googletag.pubads().enableSingleRequest();
+    googletag.enableServices();
+  });
+</script>
+<div id="cnblogs_c2" class="c_ad_block">
+    <div id="div-gpt-ad-1539008685004-0" style="height:60px; width:468px;" data-google-query-id="CPKV8dDS9N4CFZAZKgodHZEBUA">
+    <script>
+    if (new Date() >= new Date(2018, 9, 13)) {
+        googletag.cmd.push(function() { googletag.display('div-gpt-ad-1539008685004-0'); });
+    }
+    </script>
+    <div id="google_ads_iframe_/1090369/C2_0__container__" style="border: 0pt none;"><iframe id="google_ads_iframe_/1090369/C2_0" title="3rd party ad content" name="google_ads_iframe_/1090369/C2_0" width="468" height="60" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" style="border: 0px; vertical-align: bottom;" data-google-container-id="1" data-load-complete="true" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/saved_resource.html"></iframe></div></div>
+</div>
+<div id="under_post_kb"><div class="itnews c_ad_block"><b>最新新闻</b>：<br> ·  <a href="https://news.cnblogs.com/n/613379/" target="_blank">阿里调整架构：阿里云升级为阿里云智能 行癫兼任总裁</a><br> ·  <a href="https://news.cnblogs.com/n/613378/" target="_blank">Mozilla Firefox和Google Chrome即将放弃对FTP的支持</a><br> ·  <a href="https://news.cnblogs.com/n/613377/" target="_blank">谷歌地图更新：可在商家评论里附加主题标签</a><br> ·  <a href="https://news.cnblogs.com/n/613335/" target="_blank">“资本舞者”武捷思操刀金立重组 创始人刘立荣豪赌输掉十几亿</a><br> ·  <a href="https://news.cnblogs.com/n/613348/" target="_blank">中国芯片差在哪？这篇讲全了</a><br>» <a href="http://news.cnblogs.com/" title="IT新闻" target="_blank">更多新闻...</a></div></div>
+<div id="HistoryToday" class="c_ad_block"></div>
+<script type="text/javascript">
+    fixPostBody();
+    setTimeout(function () { incrementViewCount(cb_entryId); }, 50);
+    deliverAdT2();
+    deliverAdC1();
+    deliverAdC2();    
+    loadNewsAndKb();
+    loadBlogSignature();
+    LoadPostInfoBlock(cb_blogId, cb_entryId, cb_blogApp, cb_blogUserGuid);
+    GetPrevNextPost(cb_entryId, cb_blogId, cb_entryCreatedDate, cb_postType);
+    loadOptUnderPost();
+    GetHistoryToday(cb_blogId, cb_blogApp, cb_entryCreatedDate);   
+</script>
+</div>
+
+
+</div>
+<div id="leftmenu">
+
+	
+<h3>导航</h3>
+<ul>
+			<li><a id="blog_nav_sitehome" href="https://www.cnblogs.com/">博客园</a></li>
+			<li><a id="blog_nav_myhome" href="https://www.cnblogs.com/hongru/">首页</a></li>
+			<li><a id="blog_nav_contact" accesskey="9" rel="nofollow" href="https://msg.cnblogs.com/send/%E5%B2%91%E5%AE%89">联系</a></li>
+			<li><a id="blog_nav_rss" href="https://www.cnblogs.com/hongru/rss">订阅</a> <a id="blog_nav_rss_image" href="https://www.cnblogs.com/hongru/rss"><img src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/xml.gif" alt="订阅"></a>
+			</li><li><a id="blog_nav_admin" rel="nofollow" href="https://i.cnblogs.com/">管理</a></li>
+</ul>
+	<div id="blog_stats">
+<h3>统计信息</h3>
+	<ul>
+		<li>随笔 - 78
+		</li><li>文章 - 0
+		</li><li>评论 - 929
+		</li><li>Trackbacks - 0
+	</li>
+</ul></div>
+	
+<h3>News</h3>
+	<ul>
+	  <li><div id="blog-news"><div id="profile_block">昵称：<a href="https://home.cnblogs.com/u/hongru/">岑安</a><br>园龄：<a href="https://home.cnblogs.com/u/hongru/" title="入园时间：2010-09-21">8年2个月</a><br>荣誉：<a href="https://www.cnblogs.com/expert/">推荐博客</a><br>粉丝：<a href="https://home.cnblogs.com/u/hongru/followers/">999</a><br>关注：<a href="https://home.cnblogs.com/u/hongru/followees/">8</a><div id="p_b_follow"><a href="javascript:void(0);" onclick="follow(&#39;6614b77c-13c5-df11-ac81-842b2b196315&#39;)">+加关注</a></div><script>getFollowStatus('6614b77c-13c5-df11-ac81-842b2b196315')</script></div></div><script type="text/javascript">loadBlogNews();</script></li>
+	</ul>
+
+	<div id="blog-sidecolumn"><div id="sidebar_search" class="sidebar-block">
+<div id="sidebar_search" class="mySearch">
+<h3 class="catListTitle">搜索</h3>
+<div id="sidebar_search_box">
+<div id="widget_my_zzk" class="div_my_zzk"><input type="text" id="q" onkeydown="return zzk_go_enter(event);" class="input_my_zzk">&nbsp;<input onclick="zzk_go()" type="button" value="找找看" id="btnZzk" class="btn_my_zzk"></div>
+<div id="widget_my_google" class="div_my_zzk"><input type="text" name="google_q" id="google_q" onkeydown="return google_go_enter(event)" class="input_my_zzk">&nbsp;<input onclick="google_go()" type="button" value="谷歌搜索" class="btn_my_zzk"></div>
+</div>
+</div>
+
+</div><div id="sidebar_shortcut" class="sidebar-block">
+<h3 class="catListTitle">常用链接</h3>
+<ul>
+<li><a href="http://www.cnblogs.com/hongru/p/" title="我的博客的随笔列表">我的随笔</a></li><li><a href="http://www.cnblogs.com/hongru/MyComments.html" title="我发表过的评论列表">我的评论</a></li><li><a href="http://www.cnblogs.com/hongru/OtherPosts.html" title="我评论过的随笔列表">我的参与</a></li><li><a href="http://www.cnblogs.com/hongru/RecentComments.html" title="我的博客的评论列表">最新评论</a></li><li><a href="http://www.cnblogs.com/hongru/tag/" title="我的博客的标签列表">我的标签</a></li>
+</ul>
+<div id="itemListLin_con" style="display:none;">
+
+</div></div><div id="sidebar_recentposts" class="sidebar-block">
+<h3 class="catListTitle">最新随笔</h3>
+<div class="RecentComment" id="RecentPosts">
+<ul style="word-break:break-all">
+<li><a href="https://www.cnblogs.com/hongru/p/3187934.html">1. 【自己给自己题目做】之一：椭圆可点击区域</a></li><li><a href="https://www.cnblogs.com/hongru/p/3187448.html">2. 我在想，技术博不能荒废</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2013/02/08/2909449.html">3. About me [my way]</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2013/02/06/2902938.html">4. 半年拾遗</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/08/22/2650896.html">5. context2D上的texture mapping</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/08/22/2650894.html">6. Animations In Canvas</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/08/22/2650891.html">7. 快3个月没写blog了</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/05/28/2522787.html">8. 【NodeCC】nodejs版本的脚本压缩和compo工具</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/05/23/2515409.html">9. 基于【双密度松弛算法】的二维流体粒子模拟</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/05/20/2510960.html">10. 为什么我推荐事件委托而不是批量绑定</a></li>
+</ul>
+</div>
+</div><div id="sidebar_toptags" class="sidebar-block">
+<h3 class="catListTitle">我的标签</h3>
+<div id="MyTag">
+<ul>
+<li><a href="http://www.cnblogs.com/hongru/tag/js/">js</a>(17)</li><li><a href="http://www.cnblogs.com/hongru/tag/javascript/">javascript</a>(9)</li><li><a href="http://www.cnblogs.com/hongru/tag/3D/">3D</a>(7)</li><li><a href="http://www.cnblogs.com/hongru/tag/%E7%84%A6%E7%82%B9%E5%9B%BE/">焦点图</a>(5)</li><li><a href="http://www.cnblogs.com/hongru/tag/%E8%BD%AE%E6%92%AD/">轮播</a>(4)</li><li><a href="http://www.cnblogs.com/hongru/tag/canvas/">canvas</a>(4)</li><li><a href="http://www.cnblogs.com/hongru/tag/css/">css</a>(3)</li><li><a href="http://www.cnblogs.com/hongru/tag/html/">html</a>(3)</li><li><a href="http://www.cnblogs.com/hongru/tag/html5/">html5</a>(3)</li><li><a href="http://www.cnblogs.com/hongru/tag/%E6%B7%A1%E5%85%A5%E6%B7%A1%E5%87%BA/">淡入淡出</a>(3)</li><li><a href="http://www.cnblogs.com/hongru/tag/">更多</a></li>
+</ul>
+</div></div><div id="sidebar_categories">
+		<h3>随笔档案</h3>
+		
+				<ul>
+			
+				<li><a id="CatList_LinkList_0_Link_0" href="https://www.cnblogs.com/hongru/archive/2013/07.html">2013年7月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_1" href="https://www.cnblogs.com/hongru/archive/2013/02.html">2013年2月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_2" href="https://www.cnblogs.com/hongru/archive/2012/08.html">2012年8月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_3" href="https://www.cnblogs.com/hongru/archive/2012/05.html">2012年5月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_4" href="https://www.cnblogs.com/hongru/archive/2012/03.html">2012年3月 (4)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_5" href="https://www.cnblogs.com/hongru/archive/2012/02.html">2012年2月 (1)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_6" href="https://www.cnblogs.com/hongru/archive/2012/01.html">2012年1月 (4)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_7" href="https://www.cnblogs.com/hongru/archive/2011/12.html">2011年12月 (4)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_8" href="https://www.cnblogs.com/hongru/archive/2011/11.html">2011年11月 (1)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_9" href="https://www.cnblogs.com/hongru/archive/2011/10.html">2011年10月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_10" href="https://www.cnblogs.com/hongru/archive/2011/09.html">2011年9月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_11" href="https://www.cnblogs.com/hongru/archive/2011/08.html">2011年8月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_12" href="https://www.cnblogs.com/hongru/archive/2011/06.html">2011年6月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_13" href="https://www.cnblogs.com/hongru/archive/2011/05.html">2011年5月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_14" href="https://www.cnblogs.com/hongru/archive/2011/04.html">2011年4月 (4)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_15" href="https://www.cnblogs.com/hongru/archive/2011/03.html">2011年3月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_16" href="https://www.cnblogs.com/hongru/archive/2011/02.html">2011年2月 (2)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_17" href="https://www.cnblogs.com/hongru/archive/2011/01.html">2011年1月 (3)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_18" href="https://www.cnblogs.com/hongru/archive/2010/12.html">2010年12月 (5)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_19" href="https://www.cnblogs.com/hongru/archive/2010/11.html">2010年11月 (7)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_20" href="https://www.cnblogs.com/hongru/archive/2010/10.html">2010年10月 (13)</a>  </li>
+			
+				<li><a id="CatList_LinkList_0_Link_21" href="https://www.cnblogs.com/hongru/archive/2010/09.html">2010年9月 (5)</a>  </li>
+			
+				</ul>
+			
+	</div><div id="sidebar_scorerank" class="sidebar-block">
+<h3>积分与排名</h3>
+<ul>
+	<li>
+		积分 -
+		172263
+	</li><li>
+		排名 -
+		1863
+	</li>
+</ul>
+</div><div id="sidebar_recentcomments" class="sidebar-block"><div id="recent_comments_wrap">
+<h3 class="catListTitle">最新评论</h3>
+<div class="RecentComment" id="RecentComments">
+	<div id="RecentCommentsBlock"><ul>
+        <li class="recent_comment_title"><a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#4079239">1. Re:关于base64编码的原理及实现</a></li>
+        <li class="recent_comment_body">nice.<br>看懂了。</li>
+        <li class="recent_comment_author">--猫眼三姐妹</li>
+        <li class="recent_comment_title"><a href="https://www.cnblogs.com/hongru/archive/2010/10/09/1846636.html#3996236">2. Re:关于在闭包内prototype内建函数的调用问题（高手请绕道）</a></li>
+        <li class="recent_comment_body">function a1(){function b1(){this.c1()};b1.prototype.c1=function(){alert('worked')} ;return new b1()}......</li>
+        <li class="recent_comment_author">--cat.sword</li>
+        <li class="recent_comment_title"><a href="https://www.cnblogs.com/hongru/archive/2012/03/28/2420415.html#3800144">3. Re:事情没有想象中那么难--JX官网首页3D粒子效果</a></li>
+        <li class="recent_comment_body">博主都不更新了</li>
+        <li class="recent_comment_author">--q269384828</li>
+        <li class="recent_comment_title"><a href="https://www.cnblogs.com/hongru/archive/2012/03/28/2420415.html#3793266">4. Re:事情没有想象中那么难--JX官网首页3D粒子效果</a></li>
+        <li class="recent_comment_body">收下膝盖 跪拜一下</li>
+        <li class="recent_comment_author">--zcm蜗牛</li>
+        <li class="recent_comment_title"><a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html#3791097">5. Re:关于base64编码的原理及实现</a></li>
+        <li class="recent_comment_body">@viola没有错，因为他需要的是拼接后面字符串的两位，所以仅仅先把前一个ascii的前四位置0，然后左右两位，和下一个ascii的前两位相或，得到的就是正确值...</li>
+        <li class="recent_comment_author">--lauzhishuai</li>
+</ul>
+</div>
+</div>
+</div></div><div id="sidebar_topviewedposts" class="sidebar-block"><div id="topview_posts_wrap">
+<h3 class="catListTitle">阅读排行榜</h3>
+<div class="RecentComment" id="TopViewPosts"> 
+	<div id="TopViewPostsBlock"><ul><li><a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2321397.html">1. 关于base64编码的原理及实现(47906)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/01/14/2322540.html">2. canvas保存为data:image扩展功能的实现(20797)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2010/11/28/1890209.html">3. 正因为我们是前端，所以代码更需要优雅(18670)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2010/10/06/1844855.html">4. 关于浮动与清除浮动(18368)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2011/10/10/2203744.html">5. webkit-box &amp; translate 的组合--流畅的滑动体验(16225)</a></li></ul></div>
+</div>
+</div></div><div id="sidebar_topcommentedposts" class="sidebar-block"><div id="topfeedback_posts_wrap">
+<h3 class="catListTitle">评论排行榜</h3>
+<div class="RecentComment" id="TopCommentsPosts">
+	<div id="TopFeedbackPostsBlock"><ul><li><a href="https://www.cnblogs.com/hongru/archive/2010/12/12/1903704.html">1. 请允许我说：数学是如此美丽！(117)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2011/01/26/1945661.html">2. 我依旧喜欢折腾浏览器...(54)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2010/11/28/1890209.html">3. 正因为我们是前端，所以代码更需要优雅(51)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2011/05/12/2044645.html">4. 借着别人的创意，做自己的东西...(48)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/03/16/2394332.html">5. 【前端应该知道的那些事儿】运动学基础(46)</a></li></ul></div>
+</div></div></div><div id="sidebar_topdiggedposts" class="sidebar-block"><div id="topdigg_posts_wrap">
+<h3 class="catListTitle">推荐排行榜</h3>
+<div class="RecentComment">
+	<div id="TopDiggPostsBlock"><ul><li><a href="https://www.cnblogs.com/hongru/archive/2010/12/12/1903704.html">1. 请允许我说：数学是如此美丽！(127)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2010/11/28/1890209.html">2. 正因为我们是前端，所以代码更需要优雅(38)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2012/03/16/2394332.html">3. 【前端应该知道的那些事儿】运动学基础(36)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2011/01/26/1945661.html">4. 我依旧喜欢折腾浏览器...(32)</a></li><li><a href="https://www.cnblogs.com/hongru/archive/2011/05/12/2044645.html">5. 借着别人的创意，做自己的东西...(24)</a></li></ul></div>
+</div></div></div></div><script type="text/javascript">loadBlogSideColumn();</script>
+
+</div>
+
+<p id="footer">
+	Powered by: 
+	<br>
+	
+	<a id="Footer1_Hyperlink3" name="Hyperlink1" href="https://www.cnblogs.com/" style="font-family:Verdana;font-size:12px;">博客园</a>
+	<br>
+	Copyright © 岑安
+</p>
+
+
+<iframe frameborder="0" scrolling="no" style="background-color: transparent; border: 0px; display: none;" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/saved_resource(1).html"></iframe><div id="GOOGLE_INPUT_CHEXT_FLAG" input="" input_stat="{&quot;tlang&quot;:true,&quot;tsbc&quot;:true,&quot;pun&quot;:true,&quot;mk&quot;:true,&quot;ss&quot;:true}" style="display: none;"></div><iframe id="google_osd_static_frame_1814883026742" name="google_osd_static_frame" style="display: none; width: 0px; height: 0px;" src="./关于base64编码的原理及实现 - 岑安 - 博客园_files/saved_resource(2).html"></iframe></body></html>

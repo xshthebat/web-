@@ -1,0 +1,38 @@
+textarea {overflow:auto; border: 1px solid #ccc;background:#f5f5f5; width:100%; font-size:12px;font-family:Verdana}
+#main .post h2, #main .post h2 a {background: none}
+#main {margin-left:100px; margin-right: 400px;padding-top:14px}
+#leftmenu {right: 100px; width: 290px; left: auto; top:125px;}
+#leftmenu h3 {font-size: 14px;font-family:'微软雅黑','宋体','黑体';color:#333;border-bottom:1px solid #ccc}
+body, html {overflow-x: hidden;font-family:'微软雅黑','宋体','黑体';color:#333}
+#top {padding-left: 100px; height:80px; overflow:hidden; line-height:2; border-bottom: 1px solid #ccc;background:#f7f7f7; border-top: 4px solid #ccc}
+#top #Header1_HeaderTitle { font-size:36px; font-family:'微软雅黑','宋体','黑体'}
+#main p.date {border-bottom:1px solid #ccc; font-family:'微软雅黑','宋体','黑体';font-size:14px; font-style:italic;font-weight:bold}
+div.post h2 {margin-top:14px; padding-left:8px; border-left: 4px solid #17A8FA}
+div.post h2 a {color:#111}
+div.post,.hongru .c_b_p_desc, .post .c_b_p_desc {font-family:'微软雅黑','宋体','黑体';font-size:14px;color:#333; line-height:2}
+
+#footer {text-align:left; padding-left:100px}
+a:hover *,a * {text-decoration: underline}
+a.btn1 {display:inline-block; color: #f1f1f1; padding: 4px 20px; background: #34A5FF; -webkit-border-radius: 5px;-moz-border-radius: 5px;}
+a.btn1:hover {background: #15DDFF}
+.hongru a {
+color: #3879D9
+}
+.hongru a:hover {color:#17A8FA}
+#leftmenu ul {color:#000}
+.postfoot {font-size:10px; color:#666}
+div.post {margin-bottom: 40px}
+#comments h3 {color:#fff; background: #333; padding-left:10px; padding-bottom: 8px}
+#comments .blog_comment_body {
+font-size:12px; padding:10px; border:1px solid #ccc;
+background: #f3f3f3;
+}
+.commentbox_title {
+width: 100%;
+}
+div.commentform textarea.comment_textarea {
+width: 99%;
+}
+
+#cnblogs_post_body ol {padding-left:0}
+#cnblogs_post_body li {margin-bottom: 10px}

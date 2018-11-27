@@ -1,0 +1,74 @@
+# 监听数据变化的实现原理不同
+
+- Vue 通过 getter/setter 以及一些函数的劫持，能精确知道数据变化，不需要特别的优化就能达到很好的性能
+- React 默认是通过比较引用的方式进行的，如果不优化（PureComponent/shouldComponentUpdate）可能导致大量不必要的VDOM的重新渲染
+
+为什么 React 不精确监听数据变化呢？这是因为 Vue 和 React 设计理念上的区别，Vue 使用的是可变数据，而React更强调数据的不可变。所以应该说没有好坏之分，Vue更加简单，而React构建大型应用的时候更加鲁棒。
+
+# 数据流的不同
+
+![](/home/xsh/桌面/markdown/imgs/165984beb2c823d1.png)
+
+# 组件通信的区别
+
+![](/home/xsh/桌面/markdown/imgs/165984beb3825f44.png)
+
+在Vue 中有三种方式可以实现组件通信：
+
+
+
+- 父组件通过 props 向子组件传递数据或者回调，虽然可以传递回调，但是我们一般只传数据，而通过 事件的机制来处理子组件向父组件的通信
+- 子组件通过 事件 向父组件发送消息
+- 通过 V2.2.0 中新增的 provide/inject 来实现父组件向子组件注入数据，可以跨越多个层级。
+
+另外有一些比如访问 $parent/$children等比较dirty的方式这里就不讲了。
+
+在 React 中，也有对应的三种方式：
+
+
+
+- 父组件通过 props 可以向子组件传递数据或者回调
+- 可以通过 context 进行跨层级的通信，这其实和 provide/inject 起到的作用差不多。
+
+
+
+可以看到，React 本身并不支持自定义事件，Vue中子组件向父组件传递消息有两种方式：事件和回调函数，而且Vue更倾向于使用事件。但是在 React 中我们都是使用回调函数的，这可能是他们二者最大的区别。
+
+# 模板渲染方式的不同
+
+在表层上， 模板的语法不同
+
+
+
+- React 是通过JSX渲染模板
+- 而Vue是通过一种拓展的HTML语法进行渲染
+
+在深层上，模板的原理不同，这才是他们的本质区别：
+
+
+
+- React是在组件JS代码中，通过原生JS实现模板中的常见语法，比如插值，条件，循环等，都是通过JS语法实现的
+- Vue是在和组件JS代码分离的单独的模板中，通过指令来实现的，比如条件语句就需要 v-if 来实现
+
+# Vuex 和 Redux 的区别
+
+在 Vuex 中，$store 被直接注入到了组件实例中，因此可以比较灵活的使用：
+
+
+
+- 使用 dispatch 和 commit 提交更新
+- 通过 mapState 或者直接通过 this.$store 来读取数据
+
+在 Redux 中，我们每一个组件都需要显示的用 connect 把需要的 props 和 dispatch 连接起来。
+
+
+
+另外 Vuex 更加灵活一些，组件中既可以 dispatch action 也可以 commit updates，而 Redux 中只能进行 dispatch，并不能直接调用 reducer 进行修改
+
+从实现原理上来说，最大的区别是两点：
+
+
+
+- Redux 使用的是不可变数据，而Vuex的数据是可变的。Redux每次都是用新的state替换旧的state，而Vuex是直接修改
+- Redux 在检测数据变化的时候，是通过 diff 的方式比较差异的，而Vuex其实和Vue的原理一样，是通过 getter/setter来比较的（如果看Vuex源码会知道，其实他内部直接创建一个Vue实例用来跟踪数据变化）
+

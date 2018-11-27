@@ -98,6 +98,53 @@ JS引擎线程从消息队列中读取任务是不断循环的，每次栈被清
 
 ![](/home/xsh/桌面/markdown/imgs/164974fa4b42e4af.png)
 
+典列子
+
+```js
+console.log('start');
+setTimeout(() => {
+    console.log(1) //1
+    Promise.resolve().then(() => {
+        console.log(2); 
+    }).then(() => {
+        console.log(4); 
+    }).then(() => {
+        console.log('进入第三层微');
+        setTimeout(() => {
+            console.log(5); 
+            Promise.resolve().then(() => {
+                console.log(6) 
+            }).then(() => {
+                console.log(7) 
+            }).then(() => {
+                console.log('clear');
+                clearInterval(interval)
+            })
+        }, 0)
+    })
+}, 0);
+const interval = setInterval(()=>{
+    console.log('int') 
+    Promise.resolve().then(()=>{
+        console.log(8) 
+    }).then(()=>{
+        console.log(9) 
+    })
+},0)
+
+// 1 int 2 8 4 9 进入第三层微 int 8 9 5 int 6 8 7 9 clear node
+//setInterval先于timeout进入并且在一次setinterval中timeou并未执行　二次中和setimeout并行
+// 1 int 2 8 4 9  进入第三层微 int 5 8 6 9 7 //node　第二次和timeout都执行　并且　interval先于timeout
+// 1 2 4 　进入第三层微　int 5 8 6 9 7 //node
+//timeout执行时　interval并为执行　
+
+
+
+// 1 2 4 进入第三层微 int 8 9 int 8 9 5 6 7 浏览器   
+// 1 2 4 int 8 9 5 6 7　//浏览器
+//浏览器　先微后宏　主要看setimeout和　setinterval谁先进入消息队列
+```
+
 
 
 ## node中的事件环
@@ -135,7 +182,7 @@ node的事件环相比浏览器就不一样了，我们先来看一张图，他�
 
 **这里我们要注意setImmediate是属于check队列的，还有poll队列主要是异步的I/O操作，比如node中的fs.readFile()**
 
-## js定时器
+### js定时器(不一定是按准确时间推入,可能存在timeout2ms左右的延迟,interval10ms延迟)
 
 ### 定时器和线程是如何工作的
 
@@ -182,6 +229,15 @@ js中操作定时器的方法　：
 
 ## requestAnimationFrame(兼容性问题)
 
+看到这里其实 requestAnimationFrame 的实现原理就很明显了：
+
+- 注册回调函数
+- 浏览器更新时触发 animate
+- animate 会触发所有注册过的 callback
+
+这里的工作机制可以理解为所有权的转移，把触发帧更新的时间所有权交给浏览器内核，与浏览器的更新保持同步。这样做既可以避免浏览器更新与动画帧更新的不同步，又可以给予浏览器足够大的优化空间。
+在往上的调用入口就很多了，很多函数（RenderWidget::didInvalidateRect，RenderWidget::CompleteInit等）会触发动画检查，从而要求一次动画帧的更新
+
 requestAnimationFrame是浏览器用于定时循环操作的一个接口，类似于setTimeout，主要用途是按帧对网页进行重绘。
 
 设置这个API的目的是为了让各种网页动画效果（DOM动画、Canvas动画、SVG动画、WebGL动画）能够有一个统一的刷新机制，从而节省系统资源，提高系统性能，改善视觉效果。代码中使用这个API，就是告诉浏览器希望执行一个动画，让浏览器在下一个动画帧安排一次网页重绘。
@@ -190,7 +246,7 @@ requestAnimationFrame的优势，在于充分利用显示器的刷新机制，�
 
 不过有一点需要注意，requestAnimationFrame是在主线程上完成。这意味着，如果主线程非常繁忙，requestAnimationFrame的动画效果会大打折扣。
 
-requestAnimationFrame使用一个回调函数作为参数。这个回调函数会在浏览器重绘之前调用。
+requestAnimationFrame使用一个回调函数作为参数。这个回调函数会在浏览器重绘之前合并调用。
 
 ```
 requestID = window.requestAnimationFrame(callback); 

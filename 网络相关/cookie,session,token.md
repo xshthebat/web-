@@ -256,6 +256,8 @@ Session是保管在服务器端的，每个用户都会产生一个Session。假
 
 Cookie支持跨域名访问，例如将domain属性设置为“.baidu.com”，则以“.baidu.com”为后缀的一切域名均能够访问该Cookie。跨域名Cookie如今被普遍用在网络中。而Session则不会支持跨域名访问。Session仅在他所在的域名内有效。 
 
+### SESSION 的数据保存在哪里呢？(可以放在内存,数据库)
+
 ## token
 
 1. Token 完全由应用管理，所以它可以避开同源策略

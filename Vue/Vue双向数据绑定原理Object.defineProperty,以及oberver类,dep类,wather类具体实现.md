@@ -1,5 +1,9 @@
 # Vue双向数据绑定原理 (Object.defineProperty,以及oberver类,dep类,wather类具体实现
 
+![](/home/xsh/桌面/markdown/imgs/reactive.png)
+
+
+
 Vue.js是一款MVVM框架，上手快速简单易用，通过响应式在修改数据的时候更新视图。Vue.js的响应式原理依赖于Object.defineProperty,这也是Vue.js不支持IE8 以及更低版本浏览器的原因。Vue通过设定对象属性的 setter/getter 方法来监听数据的变化，通过getter进行依赖收集，而每个setter方法就是一个观察者，在数据变更的时候通知订阅者更新视图。`Object.defineProperty` 方法会直接在一个对象上定义一个新属性，或者修改一个对象的现有属性， 并返回这个对象，先来看一下它的语法：
 
 ```js

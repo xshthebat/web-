@@ -223,45 +223,18 @@ console.log(bar.call(obj, 'kevin', 18));
 
 ```js
 Function.prototype.call2 = function (context) {
-    var context = context || window; //区别null但未区别symbol
+    if (typeof this !== 'function') {
+        throw new Error('_call must be called on a function.')
+    } //判断非函数
+    context = context ? Object(context) : window;
     context.fn = this;
-
     var args = [];
-    for(var i = 1, len = arguments.length; i < len; i++) {
-        args.push('arguments[' + i + ']');
+    for (var i = 1, len = arguments.length; i < len; i++) {
+        args.push(arguments[i]);
     }
-
-    var result = eval('context.fn(' + args +')');
-
-    delete context.fn
-    return result;
+    eval('context.fn(' + args + ')');
+    delete context.fn;
 }
-
-// 测试一下
-var value = 2;
-
-var obj = {
-    value: 1
-}
-
-function bar(name, age) {
-    console.log(this.value);
-    return {
-        value: this.value,
-        name: name,
-        age: age
-    }
-}
-
-bar.call2(null); // 2
-
-console.log(bar.call2(obj, 'kevin', 18));
-// 1
-// Object {
-//    value: 1,
-//    name: 'kevin',
-//    age: 18
-// }
 ```
 
 ## apply的模拟实现
@@ -269,23 +242,20 @@ console.log(bar.call2(obj, 'kevin', 18));
 apply 的实现跟 call 类似，在这里直接给代码，代码来自于知乎 @郑航的实现：
 
 ```js
-Function.prototype.apply = function (context, arr) {
-    var context = Object(context) || window; ////区别null但未区别symbol
+Function.prototype.caapply2 = function (context,arr) {
+    if (typeof this !== 'function') {
+        throw new Error('_call must be called on a function.')
+    } //判断非函数
+    context = context ? Object(context) : window;
     context.fn = this;
-
-    var result;
-    if (!arr) {
+    var args = [];
+    let result = undefined;
+    if(arr&&arr.length){
+        result = eval('context.fn(' + arr + ')');
+    } else{
         result = context.fn();
     }
-    else {
-        var args = [];
-        for (var i = 0, len = arr.length; i < len; i++) {
-            args.push('arr[' + i + ']');
-        }
-        result = eval('context.fn(' + args + ')')
-    }
-
-    delete context.fn
+    delete context.fn;
     return result;
 }
 ```
@@ -300,6 +270,32 @@ bind() 方法会创建一个新函数。当这个新函数被调用时，bind() 
 
 1. 返回一个函数
 2. 可以传入参数
+
+```
+Function.prototype._bind = function (context) {
+    if (typeof this !== 'function') {
+        throw new Error('_bind must be called on a function.');
+    }
+    let args = Array.prototype.slice.call(arguments, 1); //获得参数
+    let fn = this;
+
+    bind.prototype = this.prototype; //解决new调用
+    console.dir(bind);
+    console.dir(this);
+    return bind;
+
+    function bind() {
+        args = args.concat(Array.prototype.slice.call(arguments, 0));
+        if (new.target) {
+            return new fn(`args.toString())`);
+        }
+        return fn.apply(context, args);
+    }
+
+};
+```
+
+
 
 ### 返回函数的模拟实现
 
@@ -446,48 +442,68 @@ Function.prototype.bind2 = function (context) {
 ```
 
 ```js
-Function.prototype.bind2 = function (context) {
+Function.prototype._bind = function (context) {
+    if (typeof this !== 'function') {
+        throw new Error('_bind must be called on a function.');
+    }
+    let args = Array.prototype.slice.call(arguments, 1); //获得参数
+    let fn = this;
 
-    if (typeof this !== "function") {
-      throw new Error("Function.prototype.bind - what is trying to be bound is not callable");
+    bind.prototype = this.prototype; //解决new调用
+    console.dir(bind);
+    console.dir(this);
+    return bind;
+
+    function bind() {
+        args = args.concat(Array.prototype.slice.call(arguments, 0));
+        if (new.target) {
+            return new fn(`args.toString())`);
+        }
+        return fn.apply(context, args);
     }
 
-    var self = this;
-    var args = Array.prototype.slice.call(arguments, 1); //取参数
-
-    var fNOP = function () {};　//原型
-
-    var fBound = function () {
-        var bindArgs = Array.prototype.slice.call(arguments);　//取bind后参数
-        return self.apply(this instanceof fNOP ? this : context, 　args.concat(bindArgs)); //判断是构造函数还是正常调用
-    }
-
-    fNOP.prototype = this.prototype;　//讲原型链修改
-    fBound.prototype = new fNOP();　//执行
-    return fBound;　//返回　fBound
-}
+};
 ```
 
 ## 箭头函数绑定this(bind/call/apply函数方法设置this值时无效的，会被忽略,没有arguments)
+
+```js
+var a = 2
+let obj ={
+    a:1,
+    fun:function () {
+        console.log(this.a,a);
+    }
+}
+obj.fun(); //1,2
+let f = obj.fun;
+f(); //undefined 2
+
+
+let obj2 ={
+    a:1,
+    fun:()=> {
+        console.log(this.a,a);
+    }
+}
+
+
+obj2.fun(); //undefined,2
+let f2 = obj2.fun;
+f2(); //undefined 2
+```
 
 
 
 ## new(new.target)
 
 ```js
-// 第二版的代码
-function objectFactory() {
-
-    var obj = new Object(), 
-
-    Constructor = [].shift.call(arguments); //获取构造函数
-
-    obj.__proto__ = Constructor.prototype;　//原型
-
-    var ret = Constructor.apply(obj, arguments);　//执行构造函数
-
-    return typeof ret === 'object' ? ret : obj;　//判断返回值
-
-};
+function objectFactory(){
+    let cons = [].shift.call(arguments); //取构造函数
+    let obj = new Object();//元对象
+    Object.setPrototypeOf(obj,cons.prototype);　//改变其原型
+    let ret = cons.apply(obj,arguments); //执行构造函数
+    return typeof ret ==='object'? ret:obj;//是否是对象，不是就返回元对象
+}
 ```
 

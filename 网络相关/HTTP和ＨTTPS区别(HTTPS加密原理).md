@@ -144,13 +144,13 @@ HTTP建立连接，按照下面链接中针对Computer Science House的测试，
 
 ![](/home/xsh/桌面/markdown/imgs/164561a55e44c382.png)
 
-##### 公开密钥加密
+#### 公开密钥加密
 
 （英语：public-key cryptography，又译为公开密钥加密）,也称为非对称加密（asymmetric cryptography），在这种密码学方法中，需要一对密钥，一个是私人密钥，另一个则是公开密钥
 
-优点：知道了公钥，也无法计算出来密钥。例如：在开发项目时，一般私钥是保存在服务端，公钥保存在前端，只要服务端安全，那么私钥就不会被窃取。
+##### 优点：知道了公钥，也无法计算出来密钥。例如：在开发项目时，一般私钥是保存在服务端，公钥保存在前端，只要服务端安全，那么私钥就不会被窃取。
 
-缺点：计算量大，需要消耗大量的系统资源，性能低。
+##### 缺点：计算量大，需要消耗大量的系统资源，性能低。
 
 常用的算法：[RSA](https://link.juejin.im/?target=https%3A%2F%2Fbaike.baidu.com%2Fitem%2FRSA)、[Elgamal](https://link.juejin.im/?target=https%3A%2F%2Fbaike.baidu.com%2Fitem%2FElgamal)、背包算法、Rabin、D-H、[ECC](https://link.juejin.im/?target=https%3A%2F%2Fbaike.baidu.com%2Fitem%2FECC)（椭圆曲线加密算法）。
 

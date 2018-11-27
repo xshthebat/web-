@@ -279,5 +279,19 @@ new Object([value])
 
 当以非构造函数形式被调用时，`Object` 等同于 `new Object()`。
 
+## Js讲类数组转换为数组对象
+
+只要有length并且可索引访问
+
+```js
+Array.prototype.slice.call(arraylike, 0);
+```
+
+[当仅传入一个参数，且传入参数为空或0时](https://segmentfault.com/q/1010000000624941)，从索引为0的元素开始复制，直到最后一个元素，结果被保存在一个数组中返回。
+
+```
+Array.from()
+```
+
 
 

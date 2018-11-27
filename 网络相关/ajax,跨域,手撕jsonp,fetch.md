@@ -351,24 +351,69 @@ xhr.send(null);
 ### 5.完整例子
 
 ```js
-var xhr = false;
+function Ajax({ url, method, param, timeout }) {
+    let _url = url;
+    let _method = method.toLocaleUpperCase() === 'GET' || method.toLocaleUpperCase() === 'POST' ? method.toLocaleUpperCase() : 'GET';
+    return new Promise((res, rej) => {
+        let xhr = null;
+        if (XMLHttpRequest) {
+            xhr = new XMLHttpRequest();
+        } else {
+            xhr = new ActiveXObject();
+        }
+        if (_method === 'GET') {
+            //处理参数
+            let arrs = [];
+            for (let keys in param) {
+                arrs.push(`${keys}=${param[keys]}`);
+            }
+            let _param = `${_url}?${arrs.join('&')}`
+            if (_param[_param.length - 1] === '?') {
+                _param = _param.substring(0, _param.length - 1);
+            }
+            console.log(_param)
+            if (xhr) {
+                xhr.open(_method, _param, true);
+            } else {
+                rej(new Error('XMLHttpRequest is not defined'));
+            }
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    res(xhr.responseText)
+                }
+            }
+            xhr.ontimeout = function () {
+                rej(new Error('timeout'));
+            }
+            xhr.send();
+        } else {
+            if (xhr) {
+                xhr.open(_method, _url, true);
+            } else {
+                rej(new Error('XMLHttpRequest is not defined'));
+            }
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    res(xhr.responseText)
+                }
+            }
+            xhr.ontimeout = function () {
+                rej(new Error('timeout'));
+            }
+            xhr.send(param);
+        }
 
- if(XMLHttpRequest){
-    xhr = new XMLHttpRequest();
- }else{
-    xhr = new ActiveXObject("Microsoft.XMLHTTP");
-};
-
-if(xhr) {//如果xhr创建失败，还是原来的false
-   xhr.open("GET","./data.json",true);
-   xhr.send();
-
-   xhr.onreadystatechange = function(){
-    if(xhr.readyState == 4 && xhr.status == 200){
-        console.log(JSON.parse(xhr.responseText).name);
-    }
-    }
+    })
 }
+Ajax({
+    url: 'http://123.207.138.78:8881/api/iflogin', method: 'GET', param: {
+
+    }
+}).then((res)=>{
+    console.log(res);
+}).catch(e=>{
+    console.log(e);
+})
 ```
 
 ### ajax方法
@@ -774,7 +819,7 @@ var iframeCon = docuemnt.querySelector('#container'),
 
 ### 跨域的解决方案
 
-#### jsonp
+#### jsonp(application / javascript)
 
 > 利用script标签不受跨域限制而形成的一种方案。
 
@@ -1022,7 +1067,7 @@ app.use(express.static(__dirname));
 app.listen(3000)
 ```
 
-#### **document.domain + iframe跨域**
+#### **document.domain + iframe跨域**(父域向子域通信,document.domain)
 
 此方案仅限主域相同，子域不同的跨域应用场景。
 
@@ -1048,7 +1093,7 @@ app.listen(3000)
 </script>
 ```
 
-#### **location.hash + iframe跨域**
+#### **location.hash + iframe跨域(hash不变)**
 
 　　要理解location.hash+iframe跨域获取数据的机制，先得知道什么是location.hash，买一送一，把锚点也一起介绍了。
 
@@ -1073,7 +1118,7 @@ app.listen(3000)
 
 ##### 如何跨域
 
-其实很简单，如果index页面要获取远端服务器的数据，动态插入一个iframe，将iframe的src属性指向服务端地址。这时top window和包裹这个iframe的子窗口是不能通信的（同源策略），所以改变子窗口的路径就行了，将数据当做改变后的路径的hash值加在路径上，然后就能通信了（和window.name跨域几乎相同），将数据加在index页面地址的hash值上。index页面监听地址的hash值变化（html5有hashchange事件，用setInterval不断轮询判断兼容ie6/7），然后做出判断，处理数据。
+其实很简单，**如果index页面要获取远端服务器的数据，动态插入一个iframe，将iframe的src属性指向服务端地址。这时top window和包裹这个iframe的子窗口是不能通信的（同源策略），所以改变子窗口的路径就行了，将数据当做改变后的路径的hash值加在路径上，然后就能通信了（和window.name跨域几乎相同），将数据加在index页面地址的hash值上**。index页面监听地址的hash值变化（html5有hashchange事件，用setInterval不断轮询判断兼容ie6/7），然后做出判断，处理数据。
 
 
 
@@ -1102,7 +1147,7 @@ top.callback(data);
 
 　　服务端文件中重定向的地址和index页面需同源，这是通信的关键。
 
-a页面和b页面同源,要获取c页面的东西　a页面需要知道c页面的高度　a页面iframe嵌入c　页面　c页面里　onload事件给和a同源的页面b页面的hash值改变然后　b页面将hash给a页面
+**a页面和b页面同源,要获取c页面的东西　a页面需要知道c页面的高度　a页面iframe嵌入c　页面　c页面里　onload事件给和a同源的页面b页面的hash值改变然后　b页面将hash给a页面**
 
 　
 
