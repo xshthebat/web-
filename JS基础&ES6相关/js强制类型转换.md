@@ -298,7 +298,7 @@ obj + ''  // '1'
 
 对象转换成基本类型值，再进行比较。对象转换优先级最高。
 
-### 4、null 和 undefined
+### 4、null 和 undefined(*)
 
 `null == undefined`， 其他类型和 null 均不相等，undefined 也是如此。
 

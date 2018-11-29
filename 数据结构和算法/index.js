@@ -92,27 +92,27 @@
 
 
 
-let haha = {
-    val:3,
-    left:{
-        val:9,
-        left:null,
-        right:null
-    },
-    right:{
-        val:20,
-        left:{
-            val:15,
-            left:null,
-            right:null
-        },
-        right:{
-            val:7,
-            left:null,
-            right:null
-        }
-    }
-}
+// let haha = {
+//     val:3,
+//     left:{
+//         val:9,
+//         left:null,
+//         right:null
+//     },
+//     right:{
+//         val:20,
+//         left:{
+//             val:15,
+//             left:null,
+//             right:null
+//         },
+//         right:{
+//             val:7,
+//             left:null,
+//             right:null
+//         }
+//     }
+// }
 
 
 //二叉树的前序遍历(循环+栈)　//中左右　　不停的访问左子树　先获取本节点在访问　然后知道没有　出栈进入右子树
@@ -260,6 +260,7 @@ let haha = {
 //     return ret;
 // };
 // console.log(levelOrder(haha));
+
 
 
 
